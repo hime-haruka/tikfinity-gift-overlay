@@ -18,25 +18,18 @@ function deepMerge(base, patch) {
   return out;
 }
 
-function now() {
-  return Date.now();
-}
-
+function now() { return Date.now(); }
 function safeClientId(clientId) {
   return String(clientId || "default").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) || "default";
 }
 
-const state = {
-  clients: {}
-};
+const state = { clients: {} };
 
 function loadState() {
   try {
     if (!fs.existsSync(DATA_FILE)) return;
     const json = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-    if (json?.clients && typeof json.clients === "object") {
-      state.clients = json.clients;
-    }
+    if (json?.clients && typeof json.clients === "object") state.clients = json.clients;
   } catch (err) {
     console.error("[state] failed to load state file", err);
   }
@@ -52,7 +45,8 @@ function scheduleSave() {
       for (const [clientId, client] of Object.entries(state.clients)) {
         compact.clients[clientId] = {
           settings: client.settings,
-          memberLevels: client.memberLevels || {}
+          memberLevels: client.memberLevels || {},
+          feedItems: client.feedItems || []
         };
       }
       fs.writeFileSync(DATA_FILE, JSON.stringify(compact, null, 2));
@@ -64,6 +58,24 @@ function scheduleSave() {
 
 loadState();
 
+function normalizeClientShape(client) {
+  client.settings = deepMerge(DEFAULT_SETTINGS, client.settings || {});
+  client.gifts ||= [];
+  client.levelCards ||= [];
+  client.feedItems ||= [];
+  client.memberLevels ||= {};
+  client.recentEvents ||= [];
+  client.seenEventIds ||= {};
+
+  // 이전 버전에서 gifts/levelCards만 저장되어 있던 경우를 위해 feedItems를 복원합니다.
+  if (client.feedItems.length === 0 && (client.gifts.length || client.levelCards.length)) {
+    client.feedItems = [
+      ...client.gifts.map((item) => ({ ...item, feedType: "gift" })),
+      ...client.levelCards.map((item) => ({ ...item, feedType: "level" }))
+    ].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }
+}
+
 export function getClient(clientIdRaw) {
   const clientId = safeClientId(clientIdRaw);
   if (!state.clients[clientId]) {
@@ -71,6 +83,7 @@ export function getClient(clientIdRaw) {
       settings: structuredClone(DEFAULT_SETTINGS),
       gifts: [],
       levelCards: [],
+      feedItems: [],
       memberLevels: {},
       recentEvents: [],
       seenEventIds: {}
@@ -78,12 +91,7 @@ export function getClient(clientIdRaw) {
     scheduleSave();
   }
   const client = state.clients[clientId];
-  client.settings = deepMerge(DEFAULT_SETTINGS, client.settings || {});
-  client.gifts ||= [];
-  client.levelCards ||= [];
-  client.memberLevels ||= {};
-  client.recentEvents ||= [];
-  client.seenEventIds ||= {};
+  normalizeClientShape(client);
   return { clientId, client };
 }
 
@@ -114,31 +122,44 @@ export function pushRecentEvent(client, item) {
   client.recentEvents = client.recentEvents.slice(0, 60);
 }
 
+function trimFeed(client) {
+  const s = client.settings.gift;
+  const max = Math.max(1, Number(s.maxCards || 8));
+
+  client.feedItems = sortFeedItems(client.feedItems, s.sortMode).slice(0, max);
+  client.gifts = client.feedItems.filter((item) => item.feedType === "gift" || item.type === "gift");
+  client.levelCards = client.feedItems.filter((item) => item.feedType === "level" || item.type === "member_level_up");
+}
+
+function sortFeedItems(items, sortMode) {
+  const list = [...items];
+  if (sortMode === "amount") {
+    return list.sort((a, b) => {
+      const aIsGift = a.feedType === "gift" || a.type === "gift";
+      const bIsGift = b.feedType === "gift" || b.type === "gift";
+      // 금액순에서는 선물끼리는 금액 우선, 레벨업 카드는 최신순으로 자연스럽게 섞되 낮은 금액 선물보다 밀리지 않게 보조값을 줍니다.
+      const av = aIsGift ? Number(a.totalCoins || 0) : Number.MAX_SAFE_INTEGER;
+      const bv = bIsGift ? Number(b.totalCoins || 0) : Number.MAX_SAFE_INTEGER;
+      return bv - av || (b.createdAt || 0) - (a.createdAt || 0);
+    });
+  }
+  return list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
 export function addGift(client, gift) {
   const s = client.settings.gift;
   if (Number(gift.totalCoins || 0) < Number(s.minCoins || 0)) return null;
 
   const item = {
     ...gift,
+    feedType: "gift",
     id: gift.id || `gift:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     createdAt: gift.createdAt || now()
   };
 
-  client.gifts.unshift(item);
-  const max = Math.max(1, Number(s.maxCards || 8));
-
-  if (client.gifts.length > max) {
-    if (s.sortMode === "amount") {
-      client.gifts = client.gifts
-        .sort((a, b) => (b.totalCoins || 0) - (a.totalCoins || 0) || (b.createdAt || 0) - (a.createdAt || 0))
-        .slice(0, max);
-    } else {
-      client.gifts = client.gifts
-        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-        .slice(0, max);
-    }
-  }
-
+  client.feedItems.unshift(item);
+  trimFeed(client);
+  scheduleSave();
   return item;
 }
 
@@ -146,42 +167,27 @@ export function addLevelCard(client, card) {
   if (!client.settings.level.enabled) return null;
   const item = {
     ...card,
+    feedType: "level",
     id: card.id || `level:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     createdAt: card.createdAt || now()
   };
-  client.levelCards.unshift(item);
-  const max = Math.max(1, Number(client.settings.level.maxCards || 4));
-  client.levelCards = client.levelCards
-    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-    .slice(0, max);
+
+  client.feedItems.unshift(item);
+  trimFeed(client);
+  scheduleSave();
   return item;
 }
 
 export function getPublicState(clientIdRaw) {
   const { clientId, client } = getClient(clientIdRaw);
-  const t = now();
-
-  // 표시 시간으로 자동 제거하지 않습니다.
-  // 새 이벤트가 들어오면 정렬/최대 카드 수 기준으로 오래된 카드만 교체됩니다.
-  const giftMax = Math.max(1, Number(client.settings.gift.maxCards || 8));
-  const levelMax = Math.max(1, Number(client.settings.level.maxCards || 4));
-
-  const sortMode = client.settings.gift.sortMode;
-  const gifts = [...client.gifts].sort((a, b) => {
-    if (sortMode === "amount") return (b.totalCoins || 0) - (a.totalCoins || 0) || (b.createdAt || 0) - (a.createdAt || 0);
-    return (b.createdAt || 0) - (a.createdAt || 0);
-  }).slice(0, giftMax);
-
-  const levelCards = [...client.levelCards]
-    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-    .slice(0, levelMax);
-
+  trimFeed(client);
   return {
     clientId,
     settings: client.settings,
-    gifts,
-    levelCards,
-    serverTime: t
+    feedItems: client.feedItems,
+    gifts: client.feedItems.filter((item) => item.feedType === "gift" || item.type === "gift"),
+    levelCards: client.feedItems.filter((item) => item.feedType === "level" || item.type === "member_level_up"),
+    serverTime: now()
   };
 }
 
@@ -189,6 +195,8 @@ export function resetClient(clientIdRaw) {
   const { client } = getClient(clientIdRaw);
   client.gifts = [];
   client.levelCards = [];
+  client.feedItems = [];
   client.recentEvents = [];
+  scheduleSave();
   return getPublicState(clientIdRaw);
 }

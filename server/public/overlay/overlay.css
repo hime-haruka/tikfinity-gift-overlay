@@ -46,8 +46,7 @@ html, body {
   width: auto;
 }
 
-.gift-stack { top: clamp(20px, 3.8vw, 74px); }
-.level-stack { bottom: clamp(20px, 3.8vw, 74px); }
+.feed-stack { top: clamp(20px, 3.8vw, 74px); }
 
 .card {
   position: relative;
@@ -105,17 +104,18 @@ html, body {
   box-shadow: 0 4px 14px rgba(0,0,0,.12);
 }
 .gift-img { background: rgba(255,255,255,.88); }
-.empty-img { display: grid; place-items: center; font-size: clamp(21px, 3vw, 32px); font-weight: 900; }
+.empty-img { display: grid; place-items: center; font-size: clamp(21px, 3vw, 32px); font-weight: 600; }
 
-.name-slot { font-size: var(--gift-font-size); line-height: 1.05; font-weight: 900; letter-spacing: -0.045em; }
+.name-slot { font-size: var(--gift-font-size); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; }
 .gift-info { justify-self: end; text-align: right; min-width: 0; }
-.gift-line { display: flex; align-items: baseline; justify-content: flex-end; gap: .32em; min-width: 0; white-space: nowrap; font-size: var(--gift-font-size); line-height: 1.05; font-weight: 900; letter-spacing: -0.045em; }
+.gift-line { display: flex; align-items: baseline; justify-content: flex-end; gap: .32em; min-width: 0; white-space: nowrap; font-size: var(--gift-font-size); line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; }
 .gift-name { max-width: min(34vw, 360px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gift-count { flex: 0 0 auto; }
-.diamond { flex: 0 0 auto; font-size: .52em; font-weight: 800; opacity: .75; letter-spacing: -0.02em; }
-.level-message { display: flex; align-items: baseline; gap: .22em; font-size: var(--level-font-size); line-height: 1.08; font-weight: 900; letter-spacing: -0.045em; white-space: nowrap; overflow: hidden; }
+.diamond { flex: 0 0 auto; font-size: .72em; font-weight: 600; opacity: .9; letter-spacing: -0.02em; }
+.level-message { display: flex; align-items: baseline; gap: .22em; font-size: var(--level-font-size); line-height: 1.08; font-weight: 600; letter-spacing: -0.045em; white-space: nowrap; overflow: hidden; }
 .level-message .marquee { flex: 0 1 auto; max-width: min(44vw, 520px); }
-.level-tail { flex: 0 0 auto; }
+.level-tail { flex: 0 0 auto; font-weight: 600; }
+.level-tail b { font-weight: 700; }
 
 .marquee { display: block; min-width: 0; overflow: hidden; white-space: nowrap; }
 .marquee > span { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }

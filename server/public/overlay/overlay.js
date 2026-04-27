@@ -1,10 +1,7 @@
 const clientId = decodeURIComponent(location.pathname.split("/").filter(Boolean).pop() || "default");
-const giftStack = document.getElementById("giftStack");
-const levelStack = document.getElementById("levelStack");
+const feedStack = document.getElementById("feedStack");
 
-function cssVar(name, value) {
-  document.documentElement.style.setProperty(name, value);
-}
+function cssVar(name, value) { document.documentElement.style.setProperty(name, value); }
 
 function applyColors(settings) {
   const g = settings.gift.colors;
@@ -34,14 +31,13 @@ function imageHtml(src, cls, fallback) {
 }
 
 function marqueeText(text, className = "") {
-  const safe = escapeHtml(text);
-  return `<span class="marquee ${className}"><span>${safe}</span></span>`;
+  return `<span class="marquee ${className}"><span>${escapeHtml(text)}</span></span>`;
 }
 
 function giftHtml(item, settings) {
   const profile = settings.gift.showProfileImage ? imageHtml(item.profileImage, "avatar", "테") : "";
   const giftImage = settings.gift.showGiftImage ? imageHtml(item.giftImage, "gift-img", "🎁") : "";
-  const giftName = settings.gift.showGiftName ? escapeHtml(item.giftName || "Gift") : "선물";
+  const giftName = settings.gift.showGiftName ? escapeHtml(item.giftName || "Gift") : "";
   const count = Number(item.count || 1).toLocaleString();
   const diamonds = settings.gift.showDiamondValue ? `<span class="diamond">💎 ${Number(item.totalCoins || 0).toLocaleString()}</span>` : "";
 
@@ -51,7 +47,7 @@ function giftHtml(item, settings) {
     ${giftImage ? `<div class="gift-slot">${giftImage}</div>` : ""}
     <div class="gift-info">
       <div class="gift-line">
-        ${settings.gift.showGiftName ? `<span class="gift-name">${giftName}</span>` : ""}
+        ${giftName ? `<span class="gift-name">${giftName}</span>` : ""}
         <span class="gift-count">× ${count}</span>
         ${diamonds}
       </div>
@@ -59,8 +55,9 @@ function giftHtml(item, settings) {
 }
 
 function levelHtml(item, settings) {
+  const profile = settings.gift.showProfileImage ? imageHtml(item.profileImage, "avatar", "★") : "";
   return `
-    <div class="profile-slot">${imageHtml(item.profileImage, "avatar", "★")}</div>
+    ${profile ? `<div class="profile-slot">${profile}</div>` : ""}
     <div class="level-message">
       ${marqueeText(item.nickname || "익명", "nickname-text")}
       <span class="level-tail">님이 레벨 업! <b>Lv.${Number(item.level || 0)}</b></span>
@@ -82,7 +79,9 @@ function refreshMarquees(root = document) {
   });
 }
 
-function updateList(container, items, settings, type) {
+function isGift(item) { return item.feedType === "gift" || item.type === "gift"; }
+
+function updateFeed(container, items, settings) {
   const incomingIds = new Set(items.map((item) => String(item.id)));
 
   [...container.children].forEach((node) => {
@@ -94,8 +93,9 @@ function updateList(container, items, settings, type) {
 
   items.forEach((item, index) => {
     const id = String(item.id);
+    const gift = isGift(item);
     let node = container.querySelector(`[data-id="${CSS.escape(id)}"]`);
-    const cardClass = type === "gift"
+    const cardClass = gift
       ? `card gift-card ${settings.gift.colors.useGradient ? "is-gradient" : ""}`
       : `card level-card ${settings.level.colors.useGradient ? "is-gradient" : ""}`;
 
@@ -103,13 +103,13 @@ function updateList(container, items, settings, type) {
       node = document.createElement("article");
       node.dataset.id = id;
       node.className = `${cardClass} enter`;
-      node.innerHTML = type === "gift" ? giftHtml(item, settings) : levelHtml(item, settings);
+      node.innerHTML = gift ? giftHtml(item, settings) : levelHtml(item, settings);
       container.insertBefore(node, container.children[index] || null);
       requestAnimationFrame(() => refreshMarquees(node));
       setTimeout(() => node.classList.remove("enter"), 620);
     } else {
       node.className = cardClass;
-      node.innerHTML = type === "gift" ? giftHtml(item, settings) : levelHtml(item, settings);
+      node.innerHTML = gift ? giftHtml(item, settings) : levelHtml(item, settings);
       requestAnimationFrame(() => refreshMarquees(node));
       const currentIndex = [...container.children].indexOf(node);
       if (currentIndex !== index) container.insertBefore(node, container.children[index] || null);
@@ -123,8 +123,7 @@ async function poll() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const state = await res.json();
     applyColors(state.settings);
-    updateList(giftStack, state.gifts, state.settings, "gift");
-    updateList(levelStack, state.levelCards, state.settings, "level");
+    updateFeed(feedStack, state.feedItems || [...(state.gifts || []), ...(state.levelCards || [])], state.settings);
     requestAnimationFrame(() => refreshMarquees(document));
   } catch (err) {
     console.warn("overlay polling failed", err);
