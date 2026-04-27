@@ -10,11 +10,11 @@ export const DEFAULT_SETTINGS = {
     displayDurationMs: 14000,
     colors: {
       text: "#ffffff",
-      background: "rgba(20, 24, 38, 0.86)",
+      background: "#161a2b",
       border: "#9b7cff",
       useGradient: true,
-      gradientFrom: "rgba(155, 124, 255, 0.95)",
-      gradientTo: "rgba(56, 189, 248, 0.85)"
+      gradientFrom: "#2b1f55",
+      gradientTo: "#151b3f"
     }
   },
   level: {
@@ -23,11 +23,11 @@ export const DEFAULT_SETTINGS = {
     displayDurationMs: 12000,
     colors: {
       text: "#ffffff",
-      background: "rgba(25, 22, 38, 0.88)",
+      background: "#221933",
       border: "#ffb86b",
       useGradient: true,
-      gradientFrom: "rgba(255, 184, 107, 0.95)",
-      gradientTo: "rgba(255, 92, 138, 0.85)"
+      gradientFrom: "#55351f",
+      gradientTo: "#52213a"
     }
   }
 };

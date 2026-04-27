@@ -10,7 +10,26 @@ function getChecked(id) { return $(id).checked; }
 function getValue(id) { return $(id).value; }
 function getNum(id) { return Number($(id).value || 0); }
 function setChecked(id, v) { $(id).checked = Boolean(v); }
-function setValue(id, v) { $(id).value = v ?? ""; }
+
+function colorToHex(value) {
+  const raw = String(value ?? "").trim();
+  if (/^#[0-9a-f]{6}$/i.test(raw)) return raw;
+  if (/^#[0-9a-f]{3}$/i.test(raw)) {
+    return "#" + raw.slice(1).split("").map((c) => c + c).join("");
+  }
+  const m = raw.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (m) {
+    return "#" + [m[1], m[2], m[3]]
+      .map((n) => Math.max(0, Math.min(255, Number(n))).toString(16).padStart(2, "0"))
+      .join("");
+  }
+  return "#000000";
+}
+
+function setValue(id, v) {
+  const el = $(id);
+  el.value = el.type === "color" ? colorToHex(v) : (v ?? "");
+}
 
 async function loadSettings() {
   const res = await fetch(`/api/settings/${encodeURIComponent(clientId)}`);

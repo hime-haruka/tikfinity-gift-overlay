@@ -1,18 +1,209 @@
+:root {
+  --bg: #f6f3ee;
+  --ink: #1f2933;
+  --muted: #7b6f63;
+  --panel: rgba(255,255,255,.78);
+  --line: rgba(83, 66, 45, .13);
+  --brand: #d59a23;
+  --brand-2: #7c5cff;
+  --soft: rgba(213,154,35,.12);
+  --shadow: 0 24px 70px rgba(62, 45, 23, .12);
+}
+
 * { box-sizing: border-box; }
-body { margin: 0; background: #111827; color: #f9fafb; font-family: Pretendard, "Segoe UI", sans-serif; }
-.wrap { max-width: 980px; margin: 0 auto; padding: 28px; }
-header { margin-bottom: 20px; }
-h1 { margin: 0; font-size: 28px; }
-p { color: #cbd5e1; }
-.panel { background: #1f2937; border: 1px solid #374151; border-radius: 18px; padding: 20px; margin: 14px 0; }
-h2 { margin: 0 0 14px; font-size: 20px; }
-h3 { margin: 18px 0 10px; }
-label { display: block; margin: 10px 0; font-weight: 700; color: #e5e7eb; }
-input, select { width: 100%; margin-top: 6px; border: 1px solid #4b5563; border-radius: 10px; background: #111827; color: #fff; padding: 10px; }
-input[type="checkbox"] { width: auto; margin-right: 8px; }
-input[type="color"] { height: 42px; padding: 2px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0; }
-button, a { appearance: none; border: 0; border-radius: 12px; padding: 12px 16px; background: #8b5cf6; color: white; text-decoration: none; font-weight: 900; cursor: pointer; }
-button:nth-child(n+2) { background: #334155; }
-#status { background: #020617; border-radius: 14px; padding: 16px; min-height: 60px; white-space: pre-wrap; }
+html { min-height: 100%; }
+body {
+  margin: 0;
+  min-height: 100%;
+  color: var(--ink);
+  font-family: Pretendard, "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 221, 143, .42), transparent 34%),
+    radial-gradient(circle at 90% 8%, rgba(175, 156, 255, .25), transparent 32%),
+    linear-gradient(135deg, #fffaf0 0%, #f6f3ee 45%, #eef3ff 100%);
+}
+
+.wrap {
+  width: min(1120px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: 36px 0 48px;
+}
+
+header {
+  position: relative;
+  padding: 28px;
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: rgba(255,255,255,.62);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+header::before {
+  content: "";
+  position: absolute;
+  inset: -80px auto auto -80px;
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  background: rgba(213,154,35,.18);
+}
+
+h1 {
+  position: relative;
+  margin: 0;
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1;
+  letter-spacing: -0.06em;
+  font-weight: 950;
+}
+p { position: relative; color: var(--muted); margin: 10px 0 0; font-weight: 700; }
+#clientLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.8);
+  border: 1px solid var(--line);
+}
+
+.panel {
+  margin: 16px 0;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--panel);
+  box-shadow: 0 18px 44px rgba(62, 45, 23, .08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+h2::before {
+  content: "";
+  width: 10px;
+  height: 24px;
+  border-radius: 99px;
+  background: linear-gradient(180deg, var(--brand), var(--brand-2));
+}
+h3 { margin: 22px 0 12px; color: #473a2c; letter-spacing: -0.03em; }
+
+label {
+  display: block;
+  margin: 10px 0;
+  color: #3d342a;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.panel > label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255,255,255,.56);
+}
+
+input, select {
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid rgba(73, 59, 41, .16);
+  border-radius: 16px;
+  background: rgba(255,255,255,.84);
+  color: #2f261d;
+  padding: 13px 14px;
+  font: inherit;
+  font-weight: 800;
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+input:focus, select:focus {
+  border-color: rgba(213,154,35,.72);
+  box-shadow: 0 0 0 5px rgba(213,154,35,.13);
+}
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--brand);
+}
+input[type="color"] {
+  height: 48px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+.colors { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+
+.actions {
+  position: sticky;
+  bottom: 18px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 22px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255,255,255,.78);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+}
+
+button, a {
+  appearance: none;
+  border: 0;
+  border-radius: 16px;
+  padding: 13px 17px;
+  background: linear-gradient(135deg, #e7aa2d, #c98412);
+  color: white;
+  text-decoration: none;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(201, 132, 18, .22);
+  transition: transform .16s ease, filter .16s ease;
+}
+button:hover, a:hover { transform: translateY(-1px); filter: brightness(1.02); }
+button:nth-child(n+2), a {
+  background: #2f3545;
+  box-shadow: 0 10px 22px rgba(47,53,69,.16);
+}
+#testGiftBtn { background: linear-gradient(135deg, #7c5cff, #5b42d6); }
+#testLevelBtn { background: linear-gradient(135deg, #ff7aa8, #d94d84); }
+
+#status {
+  margin: 0;
+  border: 1px solid rgba(73, 59, 41, .14);
+  border-radius: 22px;
+  background: rgba(31, 41, 51, .92);
+  color: #e9edf2;
+  padding: 18px;
+  min-height: 68px;
+  white-space: pre-wrap;
+  box-shadow: 0 16px 40px rgba(31,41,51,.16);
+}
+
+@media (max-width: 720px) {
+  .wrap { width: min(100% - 24px, 1120px); padding-top: 18px; }
+  header, .panel { border-radius: 22px; padding: 18px; }
+  .actions { position: static; }
+  button, a { width: 100%; text-align: center; }
+}

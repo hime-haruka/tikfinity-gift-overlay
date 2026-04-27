@@ -6,6 +6,15 @@ function num(...values) {
   return 0;
 }
 
+function numOrNull(...values) {
+  for (const value of values) {
+    if (value === undefined || value === null || value === "") continue;
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
 function str(...values) {
   for (const value of values) {
     if (value !== undefined && value !== null && String(value).trim() !== "") return String(value);
@@ -58,13 +67,17 @@ export function normalizeGift(payload) {
 
   const repeatEnd = boolOrUndefined(data.repeatEnd ?? data.repeat_end ?? data.gift?.repeatEnd);
   const giftType = num(data.giftType, data.gift_type, data.gift?.type);
-  const repeatCount = Math.max(1, num(data.repeatCount, data.repeat_count, data.count, data.amount, 1));
 
-  // Streak gifts often arrive as cumulative interim events. To avoid inflated counts,
-  // only finalize streak gifts when repeatEnd is true. If repeatEnd is absent, accept the event.
+  // 중요: count/amount/totalCount 계열은 누적값으로 들어오는 경우가 있어 수량이 튈 수 있습니다.
+  // 예: 장미 1개가 2개, 20개가 137개처럼 표시되는 문제.
+  // 표시 수량은 TikFinity의 repeatCount만 사용하고, 없으면 1개로 처리합니다.
+  const rawRepeatCount = numOrNull(data.repeatCount, data.repeat_count, data.repeat?.count);
+  const count = Math.max(1, Math.floor(rawRepeatCount ?? 1));
+
+  // 연속 선물은 중간 이벤트가 여러 번 들어오므로, 완료 이벤트만 카드로 만듭니다.
+  // repeatEnd가 아예 없는 이벤트는 일반 선물로 보고 1회 수신합니다.
   if (repeatEnd === false) return null;
 
-  const count = repeatCount;
   const msgId = str(data.msgId, data.messageId, data.eventId, data.id);
   const createdAt = num(data.timestamp, data.createTime, Date.now());
 
