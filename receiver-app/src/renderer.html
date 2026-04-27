@@ -21,11 +21,11 @@
 
     <section class="panel">
       <h2>설정</h2>
-      <label>Render 서버 URL<input id="serverUrl" placeholder="https://your-render-app.onrender.com" /></label>
-      <label>Client ID<input id="clientId" placeholder="client-a" /></label>
+      <div class="fixed-server"><span>서버 주소</span><strong>https://tikfinity-gift-overlay.onrender.com</strong></div>
+      <label>Client ID<input id="clientId" placeholder="제공받은 Client ID를 입력하세요" /></label>
       <label>TikFinity WebSocket URL<input id="tikfinityWsUrl" placeholder="ws://localhost:21213/" /></label>
       <label class="check"><input id="autoStart" type="checkbox" /> 앱 실행 시 자동 시작</label>
-      <p class="hint">Client ID, 서버 URL, WebSocket URL은 저장 후 앱을 재실행해도 유지됩니다.</p>
+      <p class="hint">서버 주소는 고정되어 있습니다. Client ID는 제작자에게 발급받은 값만 사용할 수 있습니다.</p>
       <div class="buttons">
         <button id="saveBtn">설정 저장</button>
         <button id="checkBtn">Render 연결 확인</button>

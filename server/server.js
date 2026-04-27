@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { addGift, addLevelCard, getClient, getPublicState, markSeen, pushRecentEvent, resetClient, updateSettings } from "./state.js";
 import { extractEventName, normalizeGift, normalizeMemberLevelChange } from "./event-normalizer.js";
+import { getRegisteredClient } from "./clients.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,40 +16,58 @@ app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+function requireRegisteredClient(req, res, next) {
+  const result = getRegisteredClient(req.params.clientId);
+  if (!result.ok) {
+    return res.status(result.status).json({ ok: false, clientId: result.clientId, error: result.reason });
+  }
+  req.clientId = result.clientId;
+  req.clientMeta = result.client;
+  next();
+}
+
 app.get("/", (req, res) => {
-  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>TikFinity Gift Overlay</title></head><body style="font-family:sans-serif;padding:32px"><h1>TikFinity Gift Overlay Server</h1><p>Overlay: <code>/overlay/CLIENT_ID</code></p><p>Control: <code>/control/CLIENT_ID</code></p><p>Health: <a href="/health">/health</a></p></body></html>`);
+  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>TikFinity Gift Overlay</title></head><body style="font-family:sans-serif;padding:32px"><h1>TikFinity Gift Overlay Server</h1><p>Overlay: <code>/overlay/CLIENT_ID</code></p><p>Settings: <code>/settings/CLIENT_ID</code></p><p>Health: <a href="/health">/health</a></p></body></html>`);
 });
 
 app.get("/health", (req, res) => res.json({ ok: true, time: Date.now() }));
 
-app.get("/overlay/:clientId", (req, res) => {
+app.get("/api/client/:clientId", requireRegisteredClient, (req, res) => {
+  res.json({ ok: true, clientId: req.clientId, client: req.clientMeta });
+});
+
+app.get("/overlay/:clientId", requireRegisteredClient, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "overlay", "overlay.html"));
 });
 
-app.get("/control/:clientId", (req, res) => {
+app.get("/control/:clientId", requireRegisteredClient, (req, res) => {
+  res.redirect(302, `/settings/${encodeURIComponent(req.clientId)}`);
+});
+
+app.get("/settings/:clientId", requireRegisteredClient, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "overlay", "control.html"));
 });
 
-app.get("/api/state/:clientId", (req, res) => {
-  res.json(getPublicState(req.params.clientId));
+app.get("/api/state/:clientId", requireRegisteredClient, (req, res) => {
+  res.json(getPublicState(req.clientId));
 });
 
-app.get("/api/settings/:clientId", (req, res) => {
-  const { clientId, client } = getClient(req.params.clientId);
+app.get("/api/settings/:clientId", requireRegisteredClient, (req, res) => {
+  const { clientId, client } = getClient(req.clientId);
   res.json({ clientId, settings: client.settings });
 });
 
-app.post("/api/settings/:clientId", (req, res) => {
-  const settings = updateSettings(req.params.clientId, req.body || {});
+app.post("/api/settings/:clientId", requireRegisteredClient, (req, res) => {
+  const settings = updateSettings(req.clientId, req.body || {});
   res.json({ ok: true, settings });
 });
 
-app.post("/api/reset/:clientId", (req, res) => {
-  res.json({ ok: true, state: resetClient(req.params.clientId) });
+app.post("/api/reset/:clientId", requireRegisteredClient, (req, res) => {
+  res.json({ ok: true, state: resetClient(req.clientId) });
 });
 
-app.post("/api/events/:clientId", (req, res) => {
-  const { clientId, client } = getClient(req.params.clientId);
+app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
+  const { clientId, client } = getClient(req.clientId);
   const payload = req.body || {};
   const eventName = extractEventName(payload);
 
@@ -75,8 +94,8 @@ app.post("/api/events/:clientId", (req, res) => {
   });
 });
 
-app.post("/api/test/:clientId/gift", (req, res) => {
-  const { client } = getClient(req.params.clientId);
+app.post("/api/test/:clientId/gift", requireRegisteredClient, (req, res) => {
+  const { client } = getClient(req.clientId);
   const body = req.body || {};
   const gift = {
     id: `testgift:${Date.now()}`,
@@ -96,8 +115,8 @@ app.post("/api/test/:clientId/gift", (req, res) => {
   res.json({ ok: true, gift: addGift(client, gift) });
 });
 
-app.post("/api/test/:clientId/level", (req, res) => {
-  const { client } = getClient(req.params.clientId);
+app.post("/api/test/:clientId/level", requireRegisteredClient, (req, res) => {
+  const { client } = getClient(req.clientId);
   const body = req.body || {};
   const card = {
     id: `testlevel:${Date.now()}`,

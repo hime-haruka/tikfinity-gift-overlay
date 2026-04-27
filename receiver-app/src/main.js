@@ -3,10 +3,11 @@ const path = require("path");
 const WebSocket = require("ws");
 const Store = require("electron-store");
 
+const FIXED_SERVER_URL = "https://tikfinity-gift-overlay.onrender.com";
+
 const store = new Store({
   defaults: {
-    serverUrl: "https://YOUR-RENDER-APP.onrender.com",
-    clientId: "client-a",
+    clientId: "client_test_01",
     autoStart: false,
     tikfinityWsUrl: "ws://localhost:21213/"
   }
@@ -48,37 +49,45 @@ function log(message, data) {
   send("log", { time: new Date().toLocaleTimeString(), message, data });
 }
 
+function sanitizeClientId(value) {
+  return String(value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
+}
+
 function getConfig() {
-  const serverUrl = String(store.get("serverUrl") || "").replace(/\/+$/, "");
-  const clientId = String(store.get("clientId") || "default").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) || "default";
+  const serverUrl = FIXED_SERVER_URL;
+  const clientId = sanitizeClientId(store.get("clientId"));
   const tikfinityWsUrl = String(store.get("tikfinityWsUrl") || "ws://localhost:21213/");
   return { serverUrl, clientId, tikfinityWsUrl, autoStart: Boolean(store.get("autoStart")) };
 }
 
 async function postEvent(payload) {
   const { serverUrl, clientId } = getConfig();
-  if (!serverUrl || serverUrl.includes("YOUR-RENDER-APP")) {
-    throw new Error("Render 서버 URL을 먼저 입력하세요.");
-  }
+  if (!clientId) throw new Error("Client ID를 입력하세요.");
   const res = await fetch(`${serverUrl}/api/events/${encodeURIComponent(clientId)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
-  if (!res.ok) throw new Error(`Render 전송 실패: HTTP ${res.status}`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Render 전송 실패: HTTP ${res.status}${text ? ` / ${text.slice(0, 120)}` : ""}`);
+  }
   return res.json();
 }
 
 async function checkServerHealth() {
-  const { serverUrl } = getConfig();
-  if (!serverUrl || serverUrl.includes("YOUR-RENDER-APP")) {
-    send("server-status", { ok: false, message: "서버 URL 필요" });
+  const { serverUrl, clientId } = getConfig();
+  if (!clientId) {
+    send("server-status", { ok: false, message: "Client ID 필요" });
     return false;
   }
   try {
-    const res = await fetch(`${serverUrl}/health`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    send("server-status", { ok: true, message: "Render 연결 정상" });
+    const res = await fetch(`${serverUrl}/api/client/${encodeURIComponent(clientId)}`, { cache: "no-store" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error || `HTTP ${res.status}`);
+    }
+    send("server-status", { ok: true, message: "서버/Client ID 확인 완료" });
     return true;
   } catch (err) {
     send("server-status", { ok: false, message: err.message });
@@ -178,8 +187,7 @@ function stopReceiver() {
 
 ipcMain.handle("get-config", () => getConfig());
 ipcMain.handle("save-config", (event, cfg) => {
-  if (cfg.serverUrl !== undefined) store.set("serverUrl", String(cfg.serverUrl).replace(/\/+$/, ""));
-  if (cfg.clientId !== undefined) store.set("clientId", String(cfg.clientId).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) || "default");
+  if (cfg.clientId !== undefined) store.set("clientId", sanitizeClientId(cfg.clientId));
   if (cfg.tikfinityWsUrl !== undefined) store.set("tikfinityWsUrl", String(cfg.tikfinityWsUrl));
   if (cfg.autoStart !== undefined) store.set("autoStart", Boolean(cfg.autoStart));
   log("설정 저장 완료");
@@ -188,41 +196,42 @@ ipcMain.handle("save-config", (event, cfg) => {
 ipcMain.handle("start", () => startReceiver());
 ipcMain.handle("stop", () => stopReceiver());
 ipcMain.handle("check-server", () => checkServerHealth());
+
 function getClientUrls() {
   const { serverUrl, clientId } = getConfig();
-  const safeServerUrl = serverUrl || "";
-  const safeClientId = encodeURIComponent(clientId || "default");
+  const safeClientId = encodeURIComponent(clientId || "");
   return {
-    overlayUrl: safeServerUrl ? `${safeServerUrl}/overlay/${safeClientId}` : "",
-    controlUrl: safeServerUrl ? `${safeServerUrl}/control/${safeClientId}` : ""
+    overlayUrl: safeClientId ? `${serverUrl}/overlay/${safeClientId}` : "",
+    controlUrl: safeClientId ? `${serverUrl}/settings/${safeClientId}` : ""
   };
 }
 
 ipcMain.handle("get-client-urls", () => getClientUrls());
 ipcMain.handle("copy-overlay-url", () => {
   const { overlayUrl } = getClientUrls();
-  if (!overlayUrl) throw new Error("Render 서버 URL을 먼저 입력하세요.");
+  if (!overlayUrl) throw new Error("Client ID를 먼저 입력하세요.");
   clipboard.writeText(overlayUrl);
   log("오버레이 URL 복사 완료", overlayUrl);
   return overlayUrl;
 });
 ipcMain.handle("copy-control-url", () => {
   const { controlUrl } = getClientUrls();
-  if (!controlUrl) throw new Error("Render 서버 URL을 먼저 입력하세요.");
+  if (!controlUrl) throw new Error("Client ID를 먼저 입력하세요.");
   clipboard.writeText(controlUrl);
   log("설정 페이지 URL 복사 완료", controlUrl);
   return controlUrl;
 });
 ipcMain.handle("open-overlay", () => {
   const { overlayUrl } = getClientUrls();
-  shell.openExternal(overlayUrl);
+  if (overlayUrl) shell.openExternal(overlayUrl);
 });
 ipcMain.handle("open-control", () => {
   const { controlUrl } = getClientUrls();
-  shell.openExternal(controlUrl);
+  if (controlUrl) shell.openExternal(controlUrl);
 });
 ipcMain.handle("send-test-gift", async () => {
   const { serverUrl, clientId } = getConfig();
+  if (!clientId) throw new Error("Client ID를 입력하세요.");
   const res = await fetch(`${serverUrl}/api/test/${encodeURIComponent(clientId)}/gift`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ coins: 10, count: 2 }) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   log("테스트 기프트 전송");

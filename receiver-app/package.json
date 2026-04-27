@@ -6,8 +6,9 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "build:win": "electron-builder --win portable",
-    "build:dir": "electron-builder --dir"
+    "build:win": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable",
+    "build:dir": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --dir",
+    "dist": "npm run build:win"
   },
   "dependencies": {
     "electron-store": "^8.2.0",
@@ -28,9 +29,12 @@
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
-      ]
+      ],
+      "signAndEditExecutable": false
     },
     "portable": {
       "artifactName": "TikFinity-Gift-Receiver.exe"

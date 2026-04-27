@@ -32,3 +32,24 @@ button.danger { background: #be123c; }
 input[readonly] { color: #bfdbfe; border-color: #334155; }
 .good::before, .bad::before { content: "●"; margin-right: 6px; }
 @media (max-width: 740px) { .copy-row { grid-template-columns: 1fr; } }
+
+
+.fixed-server {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid #d9e2ef;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.fixed-server span {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+}
+.fixed-server strong {
+  font-size: 14px;
+  color: #0f172a;
+  word-break: break-all;
+}

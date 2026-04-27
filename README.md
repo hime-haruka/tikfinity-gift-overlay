@@ -1,60 +1,114 @@
 # TikFinity Gift Overlay
 
-TikFinity Desktop App의 `ws://localhost:21213/` WebSocket 이벤트를 클라이언트 PC의 Receiver 앱이 받아서 Render 서버로 전송하고, OBS는 Render의 오버레이 URL을 브라우저 소스로 사용하는 구조입니다.
+TikFinity Desktop App에서 수신한 이벤트를 Receiver 앱이 받아 Render 서버로 전송하고, OBS 브라우저 소스에서 기프트/멤버 레벨업 카드를 표시하는 오버레이입니다.
 
-## 최종 사용 흐름(클라이언트)
+이번 버전은 서버 주소가 아래 주소로 고정되어 있습니다.
 
-클라이언트는 터미널/Node/npm을 사용하지 않습니다.
+```txt
+https://tikfinity-gift-overlay.onrender.com
+```
 
-1. TikFinity Desktop App 실행
-2. TikFinity에서 라이브 연결
-3. 배포받은 `TikFinity-Gift-Receiver.exe` 실행
-4. 앱에 Render 서버 URL과 Client ID 입력
-5. `리시버 시작` 클릭
-6. OBS 브라우저 소스에 `https://서버주소/overlay/CLIENT_ID` 추가
+클라이언트는 서버 주소를 입력하지 않습니다. 제작자가 발급한 `Client ID`만 Receiver 앱에 입력합니다.
 
-## URL 구조
+---
 
-- Overlay: `/overlay/:clientId`
-- 설정 페이지: `/control/:clientId`
-- 상태 API: `/api/state/:clientId`
-- 설정 API: `/api/settings/:clientId`
-- 이벤트 수신 API: `/api/events/:clientId`
+## 1. 전체 구조
 
-Client ID가 다르면 이벤트/설정/멤버 레벨 저장값이 서로 분리됩니다.
+```txt
+TikFinity Desktop App
+↓ ws://localhost:21213/
+TikFinity Gift Receiver.exe
+↓ https://tikfinity-gift-overlay.onrender.com/api/events/:clientId
+Render Server
+↓
+OBS Browser Source /overlay/:clientId
+```
 
-## 구현된 기능
+---
 
-- 기프트 이름 표시 on/off
-- 기프트 이미지 표시 on/off
-- 후원자 프로필 사진 표시 on/off
-- 다이아 환산값 표시 on/off
-- 후원 카드 색상 설정
-- 레벨업 카드 색상 설정
-- 텍스트/배경/보더/그라데이션 설정
-- 최신순/금액순 정렬
-- 최소 표시 금액
-- 클라이언트별 설정 분리
-- 멤버 레벨 변화 감지
-- chat/like/join 등 일반 이벤트에 포함된 memberLevel도 비교용으로 처리
-- 최초 관측 레벨은 기준값으로만 저장하고 표시하지 않음
-- 이전 저장 레벨보다 상승했을 때만 레벨업 카드 표시
-- TikFinity 연결 끊김 자동 재연결
-- Render 연결 상태 확인
-- Receiver 앱 내 이벤트 로그
+## 2. 클라이언트 ID 관리
 
-## Render 배포
+등록된 Client ID만 사용할 수 있습니다.
 
-Render에서 이 저장소를 연결한 뒤 `render.yaml`을 사용하거나 아래처럼 설정하세요.
+관리 파일:
 
-- Root Directory: `server`
-- Build Command: `npm install`
-- Start Command: `npm start`
-- Environment: Node 20+
+```txt
+server/data/clients.json
+```
 
-## Receiver 앱 개발자 빌드
+기본 예시:
 
-이 과정은 제작자 PC에서만 필요합니다. 클라이언트에게 요구하지 않습니다.
+```json
+{
+  "client_test_01": {
+    "name": "테스트 클라이언트",
+    "status": "active",
+    "memo": "처음 배포 테스트용 ID입니다. 실제 클라이언트 ID를 이 파일에 추가해서 사용하세요.",
+    "createdAt": "2026-04-27"
+  }
+}
+```
+
+새 클라이언트를 추가할 때는 아래처럼 ID를 추가합니다.
+
+```json
+{
+  "client_test_01": {
+    "name": "테스트 클라이언트",
+    "status": "active",
+    "memo": "테스트용",
+    "createdAt": "2026-04-27"
+  },
+  "client_ruri_01": {
+    "name": "아즈사가와 루리",
+    "status": "active",
+    "memo": "정식 이용자",
+    "createdAt": "2026-04-27"
+  }
+}
+```
+
+비활성화하려면 `status`를 `disabled`로 변경합니다.
+
+```json
+"status": "disabled"
+```
+
+등록되지 않은 Client ID는 이벤트 전송, 오버레이 접근, 설정 페이지 접근이 거부됩니다.
+
+---
+
+## 3. Render 서버 배포
+
+GitHub에 전체 폴더를 업로드한 뒤 Render에서 Web Service를 생성합니다.
+
+Render 설정:
+
+```txt
+Root Directory: server
+Build Command: npm install
+Start Command: npm start
+```
+
+`render.yaml`을 사용하는 경우 자동으로 아래 설정이 적용됩니다.
+
+```txt
+rootDir: server
+buildCommand: npm install
+startCommand: npm start
+```
+
+배포 후 아래 주소가 정상적으로 열리면 서버가 실행 중입니다.
+
+```txt
+https://tikfinity-gift-overlay.onrender.com/health
+```
+
+---
+
+## 4. Receiver.exe 빌드
+
+제작자 PC에서만 진행합니다. 클라이언트는 이 과정을 하지 않습니다.
 
 ```bash
 cd receiver-app
@@ -62,37 +116,127 @@ npm install
 npm run build:win
 ```
 
-빌드 결과물은 `receiver-app/dist/TikFinity-Gift-Receiver.exe`입니다.
-
-## 서버 로컬 테스트
+또는:
 
 ```bash
-cd server
-npm install
-npm start
+npm run dist
 ```
 
-브라우저에서 아래 주소를 확인합니다.
+빌드 결과:
 
-- `http://localhost:3000/health`
-- `http://localhost:3000/overlay/test-client`
-- `http://localhost:3000/control/test-client`
+```txt
+receiver-app/dist/TikFinity-Gift-Receiver.exe
+```
 
-## 중요 메모
+이 파일을 클라이언트에게 전달하면 됩니다.
 
-TikFinity 예제와 동일하게 Receiver는 `ws://localhost:21213/`에 연결합니다. 따라서 클라이언트 PC에서 TikFinity Desktop App이 실행되어 있고 라이브 연결 상태여야 이벤트가 들어옵니다.
+Windows에서 심볼릭 링크 권한 오류가 나면 PowerShell을 관리자 권한으로 실행하거나 Windows 개발자 모드를 켠 뒤 다시 빌드합니다.
 
-## Receiver 앱 편의 기능
+---
 
-이번 버전의 Receiver 앱에는 클라이언트 배포용 편의 기능이 포함되어 있습니다.
+## 5. 클라이언트에게 전달할 정보
 
-- Client ID / Render 서버 URL / TikFinity WebSocket URL 자동 저장
-- 앱 재실행 후에도 마지막 설정 유지
-- TikFinity 연결 성공 시 초록색 상태 표시
-- TikFinity 연결 실패/끊김 시 빨간색 상태 표시
-- Render 서버 연결 성공 시 초록색 상태 표시
-- Render 서버 연결 실패 시 빨간색 상태 표시
-- OBS 오버레이 URL 표시 및 복사 버튼
-- 설정 페이지 URL 표시 및 복사 버튼
+클라이언트에게는 아래 두 가지만 전달하면 됩니다.
 
-클라이언트에게는 Receiver 앱에서 표시되는 `OBS 오버레이 URL`을 복사해서 OBS 브라우저 소스에 넣으라고 안내하면 됩니다.
+```txt
+1. TikFinity-Gift-Receiver.exe
+2. Client ID
+```
+
+예시:
+
+```txt
+Client ID: client_ruri_01
+```
+
+Receiver 앱 안에서 오버레이 URL과 설정 페이지 URL을 복사할 수 있습니다.
+
+예시 URL:
+
+```txt
+OBS 오버레이:
+https://tikfinity-gift-overlay.onrender.com/overlay/client_ruri_01
+
+설정 페이지:
+https://tikfinity-gift-overlay.onrender.com/settings/client_ruri_01
+```
+
+---
+
+## 6. 클라이언트 사용 순서
+
+```txt
+1. TikFinity Desktop App 실행
+2. TikTok LIVE 연결
+3. TikFinity Gift Receiver.exe 실행
+4. 제공받은 Client ID 입력
+5. 리시버 시작 클릭
+6. 오버레이 URL 복사
+7. OBS 브라우저 소스에 붙여넣기
+```
+
+서버 주소는 Receiver 앱에 고정되어 있으므로 클라이언트가 입력하지 않습니다.
+
+---
+
+## 7. 설정 저장
+
+설정은 Client ID별로 분리됩니다.
+
+```txt
+client_ruri_01 설정 ≠ client_test_01 설정
+```
+
+설정 페이지에서 변경 가능한 항목:
+
+```txt
+- 기프트 이름 표시
+- 기프트 이미지 표시
+- 후원자 프로필 사진 표시
+- 다이아 표시
+- 정렬 방식: 최신순 / 금액순
+- 최소 표시 금액
+- 후원 카드 색상
+- 레벨업 카드 색상
+- 배경 / 텍스트 / 보더 / 그라데이션
+```
+
+주의: Render 무료 환경에서는 재배포/재시작 시 서버 내부 파일 저장값이 초기화될 수 있습니다. 정식 운영에서 설정을 장기간 보존하려면 Render Disk 또는 Supabase 같은 외부 DB 사용을 권장합니다.
+
+---
+
+## 8. 이벤트 처리 방식
+
+### Gift
+
+```txt
+- gift 이벤트만 카드 생성
+- repeatCount 기준으로 수량 계산
+- 설정한 최소 다이아 미만은 표시하지 않음
+- 최신순/금액순 정렬 선택 가능
+```
+
+### Member Level
+
+```txt
+- chat / like / join 등에서 memberLevel 값을 읽음
+- 사용자별 마지막 레벨과 비교
+- 최초 값은 저장만 함
+- 이전 레벨보다 상승했을 때만 레벨업 카드 표시
+```
+
+채팅/좋아요 자체는 화면에 표시하지 않습니다.
+
+---
+
+## 9. 테스트
+
+등록된 Client ID 기준으로 아래 주소를 열어 확인할 수 있습니다.
+
+```txt
+https://tikfinity-gift-overlay.onrender.com/api/client/client_test_01
+https://tikfinity-gift-overlay.onrender.com/overlay/client_test_01
+https://tikfinity-gift-overlay.onrender.com/settings/client_test_01
+```
+
+등록되지 않은 ID는 404 또는 접근 거부가 나오는 것이 정상입니다.

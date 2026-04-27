@@ -27,7 +27,6 @@ async function refreshUrls() {
 
 async function load() {
   const cfg = await window.receiver.getConfig();
-  $("serverUrl").value = cfg.serverUrl;
   $("clientId").value = cfg.clientId;
   $("tikfinityWsUrl").value = cfg.tikfinityWsUrl;
   $("autoStart").checked = cfg.autoStart;
@@ -36,12 +35,10 @@ async function load() {
 
 async function save() {
   const cfg = await window.receiver.saveConfig({
-    serverUrl: $("serverUrl").value.trim(),
     clientId: $("clientId").value.trim(),
     tikfinityWsUrl: $("tikfinityWsUrl").value.trim(),
     autoStart: $("autoStart").checked
   });
-  $("serverUrl").value = cfg.serverUrl;
   $("clientId").value = cfg.clientId;
   $("tikfinityWsUrl").value = cfg.tikfinityWsUrl;
   $("autoStart").checked = cfg.autoStart;
@@ -54,7 +51,7 @@ function queueAutoSave() {
   autosaveTimer = setTimeout(() => save().catch((err) => addLog({ time: new Date().toLocaleTimeString(), message: "자동 저장 실패", data: err.message })), 450);
 }
 
-["serverUrl", "clientId", "tikfinityWsUrl", "autoStart"].forEach((id) => {
+["clientId", "tikfinityWsUrl", "autoStart"].forEach((id) => {
   $(id).addEventListener(id === "autoStart" ? "change" : "input", queueAutoSave);
 });
 
