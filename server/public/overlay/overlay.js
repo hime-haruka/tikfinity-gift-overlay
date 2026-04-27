@@ -19,6 +19,8 @@ function applyColors(settings) {
   cssVar("--level-border", l.border);
   cssVar("--level-grad-from", l.gradientFrom);
   cssVar("--level-grad-to", l.gradientTo);
+  cssVar("--gift-font-size", `${Number(settings.gift.fontSize || 28)}px`);
+  cssVar("--level-font-size", `${Number(settings.level.fontSize || 26)}px`);
 }
 
 function escapeHtml(v) {
@@ -31,31 +33,53 @@ function imageHtml(src, cls, fallback) {
   return `<img class="${cls}" src="${escapeAttr(src)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'${cls} empty-img',textContent:'${fallback}'}))" />`;
 }
 
+function marqueeText(text, className = "") {
+  const safe = escapeHtml(text);
+  return `<span class="marquee ${className}"><span>${safe}</span></span>`;
+}
+
 function giftHtml(item, settings) {
-  const cls = settings.gift.colors.useGradient ? "gift-card is-gradient" : "gift-card";
   const profile = settings.gift.showProfileImage ? imageHtml(item.profileImage, "avatar", "테") : "";
   const giftImage = settings.gift.showGiftImage ? imageHtml(item.giftImage, "gift-img", "🎁") : "";
-  const media = profile || giftImage ? `<div class="media-pair">${profile}${giftImage}</div>` : "";
-  const giftName = settings.gift.showGiftName ? `<div class="card-sub">${escapeHtml(item.giftName || "Gift")}</div>` : "";
-  const diamonds = settings.gift.showDiamondValue ? `<div class="card-meta">${Number(item.totalCoins || 0).toLocaleString()} diamonds</div>` : "";
+  const giftName = settings.gift.showGiftName ? escapeHtml(item.giftName || "Gift") : "선물";
   const count = Number(item.count || 1).toLocaleString();
-  return `${media}
-    <div class="card-body">
-      <div class="card-title">${escapeHtml(item.nickname || item.username || "익명")}</div>
-      ${giftName}
-    </div>
-    <div class="card-value">${escapeHtml(item.giftName || "Gift")} × ${count}</div>
-    ${diamonds}`;
+  const diamonds = settings.gift.showDiamondValue ? `<span class="diamond">💎 ${Number(item.totalCoins || 0).toLocaleString()}</span>` : "";
+
+  return `
+    ${profile ? `<div class="profile-slot">${profile}</div>` : ""}
+    <div class="name-slot">${marqueeText(item.nickname || item.username || "익명", "nickname-text")}</div>
+    ${giftImage ? `<div class="gift-slot">${giftImage}</div>` : ""}
+    <div class="gift-info">
+      <div class="gift-line">
+        ${settings.gift.showGiftName ? `<span class="gift-name">${giftName}</span>` : ""}
+        <span class="gift-count">× ${count}</span>
+        ${diamonds}
+      </div>
+    </div>`;
 }
 
 function levelHtml(item, settings) {
-  const cls = settings.level.colors.useGradient ? "level-card is-gradient" : "level-card";
-  return `${imageHtml(item.profileImage, "avatar", "★")}
-    <div class="card-body">
-      <div class="card-title">${escapeHtml(item.nickname || "익명")} 님 레벨업!</div>
-      <div class="card-sub">Lv.${Number(item.previousLevel || 0)} → Lv.${Number(item.level || 0)}</div>
-    </div>
-    <div class="card-value">LEVEL UP</div>`;
+  return `
+    <div class="profile-slot">${imageHtml(item.profileImage, "avatar", "★")}</div>
+    <div class="level-message">
+      ${marqueeText(item.nickname || "익명", "nickname-text")}
+      <span class="level-tail">님이 레벨 업! <b>Lv.${Number(item.level || 0)}</b></span>
+    </div>`;
+}
+
+function refreshMarquees(root = document) {
+  root.querySelectorAll(".marquee").forEach((el) => {
+    const inner = el.firstElementChild;
+    if (!inner) return;
+    const diff = inner.scrollWidth - el.clientWidth;
+    if (diff > 4) {
+      el.classList.add("is-overflow");
+      el.style.setProperty("--scroll-distance", `${diff + 18}px`);
+    } else {
+      el.classList.remove("is-overflow");
+      el.style.removeProperty("--scroll-distance");
+    }
+  });
 }
 
 function updateList(container, items, settings, type) {
@@ -72,8 +96,8 @@ function updateList(container, items, settings, type) {
     const id = String(item.id);
     let node = container.querySelector(`[data-id="${CSS.escape(id)}"]`);
     const cardClass = type === "gift"
-      ? `card ${settings.gift.colors.useGradient ? "gift-card is-gradient" : "gift-card"}`
-      : `card ${settings.level.colors.useGradient ? "level-card is-gradient" : "level-card"}`;
+      ? `card gift-card ${settings.gift.colors.useGradient ? "is-gradient" : ""}`
+      : `card level-card ${settings.level.colors.useGradient ? "is-gradient" : ""}`;
 
     if (!node) {
       node = document.createElement("article");
@@ -81,10 +105,12 @@ function updateList(container, items, settings, type) {
       node.className = `${cardClass} enter`;
       node.innerHTML = type === "gift" ? giftHtml(item, settings) : levelHtml(item, settings);
       container.insertBefore(node, container.children[index] || null);
+      requestAnimationFrame(() => refreshMarquees(node));
       setTimeout(() => node.classList.remove("enter"), 620);
     } else {
       node.className = cardClass;
       node.innerHTML = type === "gift" ? giftHtml(item, settings) : levelHtml(item, settings);
+      requestAnimationFrame(() => refreshMarquees(node));
       const currentIndex = [...container.children].indexOf(node);
       if (currentIndex !== index) container.insertBefore(node, container.children[index] || null);
     }
@@ -99,6 +125,7 @@ async function poll() {
     applyColors(state.settings);
     updateList(giftStack, state.gifts, state.settings, "gift");
     updateList(levelStack, state.levelCards, state.settings, "level");
+    requestAnimationFrame(() => refreshMarquees(document));
   } catch (err) {
     console.warn("overlay polling failed", err);
   } finally {

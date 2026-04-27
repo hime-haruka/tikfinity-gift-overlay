@@ -33,6 +33,7 @@ function setValue(id, v) {
 
 async function loadSettings() {
   const res = await fetch(`/api/settings/${encodeURIComponent(clientId)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const { settings } = await res.json();
   setChecked("showGiftName", settings.gift.showGiftName);
   setChecked("showGiftImage", settings.gift.showGiftImage);
@@ -41,7 +42,7 @@ async function loadSettings() {
   setValue("sortMode", settings.gift.sortMode);
   setValue("minCoins", settings.gift.minCoins);
   setValue("maxCards", settings.gift.maxCards);
-  setValue("giftDuration", settings.gift.displayDurationMs);
+  setValue("giftFontSize", settings.gift.fontSize || 28);
   setChecked("giftUseGradient", settings.gift.colors.useGradient);
   setValue("giftText", settings.gift.colors.text);
   setValue("giftBorder", settings.gift.colors.border);
@@ -51,7 +52,7 @@ async function loadSettings() {
 
   setChecked("levelEnabled", settings.level.enabled);
   setValue("levelMaxCards", settings.level.maxCards);
-  setValue("levelDuration", settings.level.displayDurationMs);
+  setValue("levelFontSize", settings.level.fontSize || 26);
   setChecked("levelUseGradient", settings.level.colors.useGradient);
   setValue("levelText", settings.level.colors.text);
   setValue("levelBorder", settings.level.colors.border);
@@ -71,7 +72,7 @@ function collectSettings() {
       sortMode: getValue("sortMode"),
       minCoins: getNum("minCoins"),
       maxCards: getNum("maxCards"),
-      displayDurationMs: getNum("giftDuration"),
+      fontSize: getNum("giftFontSize"),
       colors: {
         useGradient: getChecked("giftUseGradient"),
         text: getValue("giftText"),
@@ -84,7 +85,7 @@ function collectSettings() {
     level: {
       enabled: getChecked("levelEnabled"),
       maxCards: getNum("levelMaxCards"),
-      displayDurationMs: getNum("levelDuration"),
+      fontSize: getNum("levelFontSize"),
       colors: {
         useGradient: getChecked("levelUseGradient"),
         text: getValue("levelText"),

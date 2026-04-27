@@ -160,23 +160,27 @@ export function addLevelCard(client, card) {
 export function getPublicState(clientIdRaw) {
   const { clientId, client } = getClient(clientIdRaw);
   const t = now();
-  const giftTtl = Number(client.settings.gift.displayDurationMs || 14000);
-  const levelTtl = Number(client.settings.level.displayDurationMs || 12000);
 
-  client.gifts = client.gifts.filter((x) => t - Number(x.createdAt || 0) <= giftTtl);
-  client.levelCards = client.levelCards.filter((x) => t - Number(x.createdAt || 0) <= levelTtl);
+  // 표시 시간으로 자동 제거하지 않습니다.
+  // 새 이벤트가 들어오면 정렬/최대 카드 수 기준으로 오래된 카드만 교체됩니다.
+  const giftMax = Math.max(1, Number(client.settings.gift.maxCards || 8));
+  const levelMax = Math.max(1, Number(client.settings.level.maxCards || 4));
 
   const sortMode = client.settings.gift.sortMode;
   const gifts = [...client.gifts].sort((a, b) => {
     if (sortMode === "amount") return (b.totalCoins || 0) - (a.totalCoins || 0) || (b.createdAt || 0) - (a.createdAt || 0);
     return (b.createdAt || 0) - (a.createdAt || 0);
-  });
+  }).slice(0, giftMax);
+
+  const levelCards = [...client.levelCards]
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .slice(0, levelMax);
 
   return {
     clientId,
     settings: client.settings,
     gifts,
-    levelCards: client.levelCards,
+    levelCards,
     serverTime: t
   };
 }

@@ -7,27 +7,27 @@ export const DEFAULT_SETTINGS = {
     sortMode: "latest",
     minCoins: 0,
     maxCards: 8,
-    displayDurationMs: 14000,
+    fontSize: 28,
     colors: {
       text: "#ffffff",
-      background: "#161a2b",
-      border: "#9b7cff",
+      background: "#efe9ff",
+      border: "#b79cff",
       useGradient: true,
-      gradientFrom: "#2b1f55",
-      gradientTo: "#151b3f"
+      gradientFrom: "#b9a7ff",
+      gradientTo: "#ffd2e8"
     }
   },
   level: {
     enabled: true,
     maxCards: 4,
-    displayDurationMs: 12000,
+    fontSize: 26,
     colors: {
       text: "#ffffff",
-      background: "#221933",
-      border: "#ffb86b",
+      background: "#fff1e6",
+      border: "#ffbd8a",
       useGradient: true,
-      gradientFrom: "#55351f",
-      gradientTo: "#52213a"
+      gradientFrom: "#ffbd8a",
+      gradientTo: "#ff8fb8"
     }
   }
 };
