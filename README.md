@@ -14,7 +14,7 @@
 1. TikFinity Desktop App 실행  
 2. TikTok LIVE 방송 연결
 
-👉 TikFinity가 실행되어 있어야 후원 이벤트를 받을 수 있습니다.
+TikFinity가 실행되어 있어야 후원 이벤트를 받을 수 있습니다.
 
 ---
 
