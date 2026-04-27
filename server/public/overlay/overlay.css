@@ -1,0 +1,38 @@
+:root {
+  --gift-text: #fff;
+  --gift-bg: rgba(20, 24, 38, 0.86);
+  --gift-border: #9b7cff;
+  --gift-grad-from: rgba(155, 124, 255, 0.95);
+  --gift-grad-to: rgba(56, 189, 248, 0.85);
+  --level-text: #fff;
+  --level-bg: rgba(25, 22, 38, 0.88);
+  --level-border: #ffb86b;
+  --level-grad-from: rgba(255, 184, 107, 0.95);
+  --level-grad-to: rgba(255, 92, 138, 0.85);
+}
+
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; font-family: Pretendard, "Segoe UI", sans-serif; }
+#overlayRoot { position: fixed; inset: 0; pointer-events: none; }
+.stack { position: absolute; display: flex; flex-direction: column; gap: 12px; width: min(520px, 92vw); }
+.gift-stack { right: 32px; bottom: 32px; align-items: flex-end; }
+.level-stack { left: 32px; bottom: 32px; align-items: flex-start; }
+
+.card { min-width: 320px; max-width: 520px; display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 14px 16px; border-radius: 22px; backdrop-filter: blur(10px); animation: popIn 420ms cubic-bezier(.16,1,.3,1); box-shadow: 0 14px 40px rgba(0,0,0,.26); overflow: hidden; position: relative; }
+.card::before { content: ""; position: absolute; inset: 0; opacity: .25; background: radial-gradient(circle at 18% 0%, rgba(255,255,255,.42), transparent 32%); pointer-events: none; }
+.gift-card { color: var(--gift-text); background: var(--gift-bg); border: 2px solid var(--gift-border); }
+.gift-card.is-gradient { background: linear-gradient(135deg, var(--gift-grad-from), var(--gift-grad-to)); }
+.level-card { color: var(--level-text); background: var(--level-bg); border: 2px solid var(--level-border); }
+.level-card.is-gradient { background: linear-gradient(135deg, var(--level-grad-from), var(--level-grad-to)); }
+
+.avatar, .gift-img { width: 54px; height: 54px; border-radius: 18px; object-fit: cover; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3); }
+.media-pair { display: flex; align-items: center; gap: 8px; }
+.card-body { min-width: 0; position: relative; z-index: 1; }
+.card-title { font-size: 18px; font-weight: 900; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-sub { margin-top: 4px; font-size: 14px; font-weight: 700; opacity: .88; }
+.card-value { margin-top: 7px; font-size: 22px; line-height: 1; font-weight: 950; letter-spacing: -.03em; }
+.card-meta { margin-top: 5px; font-size: 13px; opacity: .82; }
+.empty-img { display: grid; place-items: center; font-weight: 900; font-size: 24px; }
+
+@keyframes popIn { from { transform: translateY(18px) scale(.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+@media (max-width: 700px) { .gift-stack { right: 16px; bottom: 16px; } .level-stack { left: 16px; bottom: 16px; } .card { min-width: 280px; } }

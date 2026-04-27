@@ -1,0 +1,39 @@
+{
+  "name": "tikfinity-gift-receiver-app",
+  "version": "1.0.0",
+  "description": "Client receiver app for TikFinity gift overlay",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win portable",
+    "build:dir": "electron-builder --dir"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "electron": "^29.4.6",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.gift-overlay.receiver",
+    "productName": "TikFinity Gift Receiver",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "TikFinity-Gift-Receiver.exe"
+    }
+  }
+}

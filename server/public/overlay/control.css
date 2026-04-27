@@ -1,0 +1,18 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #111827; color: #f9fafb; font-family: Pretendard, "Segoe UI", sans-serif; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 28px; }
+header { margin-bottom: 20px; }
+h1 { margin: 0; font-size: 28px; }
+p { color: #cbd5e1; }
+.panel { background: #1f2937; border: 1px solid #374151; border-radius: 18px; padding: 20px; margin: 14px 0; }
+h2 { margin: 0 0 14px; font-size: 20px; }
+h3 { margin: 18px 0 10px; }
+label { display: block; margin: 10px 0; font-weight: 700; color: #e5e7eb; }
+input, select { width: 100%; margin-top: 6px; border: 1px solid #4b5563; border-radius: 10px; background: #111827; color: #fff; padding: 10px; }
+input[type="checkbox"] { width: auto; margin-right: 8px; }
+input[type="color"] { height: 42px; padding: 2px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0; }
+button, a { appearance: none; border: 0; border-radius: 12px; padding: 12px 16px; background: #8b5cf6; color: white; text-decoration: none; font-weight: 900; cursor: pointer; }
+button:nth-child(n+2) { background: #334155; }
+#status { background: #020617; border-radius: 14px; padding: 16px; min-height: 60px; white-space: pre-wrap; }
