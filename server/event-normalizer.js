@@ -40,7 +40,14 @@ export function extractData(payload) {
 export function getMemberLevelFromAnyEvent(payload) {
   const data = extractData(payload);
   const userId = str(data.userId, data.user_id, data.uniqueId, data.username, data.nickname);
-  const level = num(data.memberLevel, data.member_level, data.level, data.user?.memberLevel);
+    const level = num(
+    data.teamMemberLevel,
+    data.user?.teamMemberLevel,
+    data.memberLevel,
+    data.member_level,
+    data.level,
+    data.user?.memberLevel
+  );
   if (!userId || level <= 0) return null;
   return {
     userId,
