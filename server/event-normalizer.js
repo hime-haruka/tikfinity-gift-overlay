@@ -83,7 +83,7 @@ export function normalizeGift(payload) {
 
   // 연속 선물은 중간 이벤트가 여러 번 들어오므로, 완료 이벤트만 카드로 만듭니다.
   // repeatEnd가 아예 없는 이벤트는 일반 선물로 보고 1회 수신합니다.
-  if (repeatEnd === false) return null;
+  if (giftType === 1 && repeatEnd === false) return null;
 
   const msgId = str(data.msgId, data.messageId, data.eventId, data.id);
   const createdAt = num(data.timestamp, data.createTime, Date.now());
