@@ -10,5 +10,11 @@
     "status": "active",
     "memo": "김이루다",
     "createdAt": "2026-04-28"
+  },
+  "roro": {
+    "name": "로로",
+    "status": "active",
+    "memo": "로로",
+    "createdAt": "2026-04-28"
   }
 }
