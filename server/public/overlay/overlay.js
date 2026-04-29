@@ -72,16 +72,12 @@ function giftHtml(item, settings) {
   const giftName = settings.gift.showGiftName ? escapeHtml(item.giftName || "Gift") : "";
   const count = Number(item.count || 1).toLocaleString();
   const diamonds = settings.gift.showDiamondValue ? `<span class="diamond">💎 ${Number(item.totalCoins || 0).toLocaleString()}</span>` : "";
-  const pin = item.pinned ? `<span class="pin-badge">고정</span>` : "";
-
   return `
     ${profile ? `<div class="profile-slot">${profile}</div>` : ""}
     <div class="name-slot">${marqueeText(item.nickname || item.username || "익명", "nickname-text")}</div>
     ${giftImage ? `<div class="gift-slot">${giftImage}</div>` : ""}
     <div class="gift-info">
       <div class="gift-line">
-        ${pin}
-        ${item.isSuperFan ? `<span class="superfan-badge">슈퍼팬</span>` : ""}
         ${giftName ? `<span class="gift-name">${giftName}</span>` : ""}
         <span class="gift-count">× ${count}</span>
         ${diamonds}
@@ -91,11 +87,9 @@ function giftHtml(item, settings) {
 
 function levelHtml(item, settings) {
   const profile = settings.gift.showProfileImage ? imageHtml(item.profileImage, "avatar", "★") : "";
-  const pin = item.pinned ? `<span class="pin-badge">고정</span>` : "";
   return `
     ${profile ? `<div class="profile-slot">${profile}</div>` : ""}
     <div class="level-message">
-      ${pin}
       ${marqueeText(item.nickname || "익명", "nickname-text")}
       <span class="level-tail">님이 레벨 업! <b>Lv.${Number(item.level || 0)}</b></span>
     </div>`;
@@ -137,7 +131,7 @@ function updateFeed(container, items, settings) {
     const gift = isGift(item);
     const style = styleForItem(item, settings);
     let node = container.querySelector(`[data-id="${CSS.escape(id)}"]`);
-    const cardClass = `${gift ? "gift-card" : "level-card"} ${style.useGradient ? "is-gradient" : ""} ${item.pinned ? "is-pinned" : ""}`;
+    const cardClass = `${gift ? "gift-card" : "level-card"} ${style.useGradient ? "is-gradient" : ""}`;
 
     if (!node) {
       node = document.createElement("article");
@@ -146,13 +140,13 @@ function updateFeed(container, items, settings) {
       applyCardStyle(node, style);
       node.innerHTML = gift ? giftHtml(item, settings) : levelHtml(item, settings);
       container.insertBefore(node, container.children[index] || null);
-      requestAnimationFrame(() => refreshMarquees(node));
+      requestAnimationFrame(() => { refreshMarquees(node); setTimeout(() => refreshMarquees(node), 350); });
       setTimeout(() => node.classList.remove("enter"), 620);
     } else {
       node.className = `card ${cardClass}`;
       applyCardStyle(node, style);
       node.innerHTML = gift ? giftHtml(item, settings) : levelHtml(item, settings);
-      requestAnimationFrame(() => refreshMarquees(node));
+      requestAnimationFrame(() => { refreshMarquees(node); setTimeout(() => refreshMarquees(node), 350); });
       const currentIndex = [...container.children].indexOf(node);
       if (currentIndex !== index) container.insertBefore(node, container.children[index] || null);
     }

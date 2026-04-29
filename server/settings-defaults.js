@@ -147,10 +147,10 @@ export const COLOR_PRESETS = {
   }
 
 };
-const defaultPreset = COLOR_PRESETS.purpleDream;
+const defaultPreset = COLOR_PRESETS.purpleDream || COLOR_PRESETS.cottonCandyDream || Object.values(COLOR_PRESETS)[0];
 
 export const DEFAULT_SETTINGS = {
-  activePreset: "purpleDream",
+  activePreset: COLOR_PRESETS.purpleDream ? "purpleDream" : (COLOR_PRESETS.cottonCandyDream ? "cottonCandyDream" : Object.keys(COLOR_PRESETS)[0]),
   gift: {
     showGiftName: true,
     showGiftImage: true,
@@ -168,6 +168,8 @@ export const DEFAULT_SETTINGS = {
   },
   level: {
     enabled: true,
+    sortMode: "latest",
+    minLevel: 0,
     maxCards: 4,
     fontSize: 26,
     cardHeight: 90,

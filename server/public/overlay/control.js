@@ -119,6 +119,8 @@ async function loadSettings() {
   setValue("giftCardHeight", currentSettings.gift.cardHeight || 96);
 
   setChecked("levelEnabled", currentSettings.level.enabled);
+  setValue("levelSortMode", currentSettings.level.sortMode || "latest");
+  setValue("minLevel", currentSettings.level.minLevel || 0);
   setValue("levelMaxCards", currentSettings.level.maxCards);
   setValue("levelFontSize", currentSettings.level.fontSize || 26);
   setValue("levelCardHeight", currentSettings.level.cardHeight || 90);
@@ -151,6 +153,8 @@ function collectSettings() {
     },
     level: {
       enabled: getChecked("levelEnabled"),
+      sortMode: getValue("levelSortMode"),
+      minLevel: getNum("minLevel"),
       maxCards: getNum("levelMaxCards"),
       fontSize: getNum("levelFontSize"),
       cardHeight: getNum("levelCardHeight"),
@@ -279,21 +283,52 @@ document.body.addEventListener("click", async (event) => {
 
 $("saveBtn").addEventListener("click", () => saveSettings().catch((err) => setStatus(`저장 실패: ${err.message}`)));
 $("reloadStateBtn").addEventListener("click", () => loadState().then(() => setStatus("목록을 새로고침했습니다.")).catch((err) => setStatus(`목록 로드 실패: ${err.message}`)));
+function getTestPayload() {
+  const nickname = getValue("testNickname") || "엄청긴닉네임_전광판_테스트유저_슈퍼팬확인용";
+  const isSuperFan = getChecked("testIsSuperFan");
+  const userId = `test-${nickname}-${isSuperFan ? "sf" : "normal"}`.replace(/[^a-zA-Z0-9가-힣_-]/g, "_").slice(0, 60) || "test-user";
+  return {
+    userId,
+    uniqueId: userId,
+    nickname,
+    coins: getNum("testGiftCoins"),
+    count: Math.max(1, getNum("testGiftCount") || 1),
+    level: getNum("testLevelValue"),
+    previousLevel: Math.max(0, getNum("testLevelValue") - 1),
+    isSuperFan
+  };
+}
+
+async function registerTestSuperFanIfNeeded(payload) {
+  if (!payload.isSuperFan) return;
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/superfan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+}
+
 $("testGiftBtn").addEventListener("click", async () => {
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ coins: 500, count: 2 }) });
+  const payload = getTestPayload();
+  await registerTestSuperFanIfNeeded(payload);
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   await loadState();
   setStatus("테스트 기프트를 보냈습니다.");
 });
 $("testLevelBtn").addEventListener("click", async () => {
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/level`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ previousLevel: 19, level: 20 }) });
+  const payload = getTestPayload();
+  await registerTestSuperFanIfNeeded(payload);
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/level`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   await loadState();
   setStatus("테스트 레벨업을 보냈습니다.");
 });
-$("testSuperFanBtn").addEventListener("click", async () => {
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/superfan`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: "test-user", uniqueId: "test_user", nickname: "엄청긴닉네임_테스트후원자_전광판확인용", coins: 1000, count: 1 }) });
+$("testBothBtn").addEventListener("click", async () => {
+  const payload = getTestPayload();
+  await registerTestSuperFanIfNeeded(payload);
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/level`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   await loadState();
-  setStatus("테스트 유저를 슈퍼팬으로 등록하고 기프트를 보냈습니다.");
+  setStatus("테스트 기프트와 레벨업을 보냈습니다.");
 });
 $("resetBtn").addEventListener("click", async () => {
   await fetch(`/api/reset/${encodeURIComponent(clientId)}`, { method: "POST" });

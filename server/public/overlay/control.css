@@ -70,3 +70,5 @@
   background: rgba(255,255,255,.56);
   border: 1px dashed var(--line);
 }
+
+.test-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:14px}.test-check{align-self:stretch;justify-content:center}@media (max-width:860px){.test-grid{grid-template-columns:1fr 1fr}.test-check{justify-content:flex-start}}

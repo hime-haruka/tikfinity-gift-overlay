@@ -176,6 +176,9 @@ function sortItems(items, sortMode) {
   if (sortMode === "amount") {
     return list.sort((a, b) => Number(b.totalCoins || 0) - Number(a.totalCoins || 0) || (b.createdAt || 0) - (a.createdAt || 0));
   }
+  if (sortMode === "level") {
+    return list.sort((a, b) => Number(b.level || 0) - Number(a.level || 0) || (b.createdAt || 0) - (a.createdAt || 0));
+  }
   return list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
@@ -189,9 +192,13 @@ function splitPinned(items, pinnedIds, sortMode) {
 function displayItems(client, type) {
   const isWanted = type === "gift" ? isGift : isLevel;
   const settings = client.settings[type];
-  const all = client.feedItems.filter(isWanted);
+  const all = client.feedItems.filter(isWanted).filter((item) => {
+    if (type === "gift") return true;
+    return Number(item.level || 0) >= Number(settings.minLevel || 0);
+  });
   const max = Math.max(1, Number(settings.maxCards || (type === "gift" ? 8 : 4)));
-  const { pinned, normal } = splitPinned(all, settings.pinnedIds, type === "gift" ? client.settings.gift.sortMode : "latest");
+  const sortMode = type === "gift" ? client.settings.gift.sortMode : (client.settings.level.sortMode || "latest");
+  const { pinned, normal } = splitPinned(all, settings.pinnedIds, sortMode);
   return [...pinned.map((item) => ({ ...item, pinned: true })), ...normal.slice(0, max).map((item) => ({ ...item, pinned: false }))];
 }
 
@@ -244,6 +251,7 @@ export function addGift(client, gift) {
 
 export function addLevelCard(client, card) {
   if (!client.settings.level.enabled) return null;
+  if (Number(card.level || 0) < Number(client.settings.level.minLevel || 0)) return null;
   const item = {
     ...card,
     feedType: "level",
