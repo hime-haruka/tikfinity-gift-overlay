@@ -25,23 +25,103 @@ const levelRanges = [
 const tiers = (ranges, colors) => ranges.map((r, i) => ({ ...r, color: colors[i] || colors.at(-1) }));
 
 export const COLOR_PRESETS = {
-  cottonCandy: {
-    label: "코튼 캔디",
-    gift: color("#ffffff", "#ffe4f0", "#ff9ec8", "#ff9ec8", "#b9a7ff"),
-    level: color("#ffffff", "#fff1e6", "#ffbd8a", "#ffbd8a", "#ff8fb8"),
-    superFan: color("#fffaf8", "#4d2441", "#ffd1e6", "#ffd36a", "#ff6fb5"),
+    cottonCandyDream: {
+    label: "캔디 드림",
+    gift: color("#ffffff", "#ffeaf6", "#ff9ed0", "#ff9ed0", "#a9b8ff"),
+    level: color("#ffffff", "#f1eaff", "#b7a8ff", "#b7a8ff", "#ffb7dc"),
+    superFan: color("#fffaff", "#4a2445", "#ffd6ec", "#ffd36a", "#ff78c2"),
     giftTiers: tiers(giftRanges, [
-      color("#ffffff", "#ffeaf4", "#ffb6d5", "#ffb6d5", "#d7c8ff"),
-      color("#ffffff", "#ffdfef", "#ff9cc9", "#ff9cc9", "#c6b0ff"),
-      color("#ffffff", "#ffd2e8", "#ff7fb8", "#ff7fb8", "#b69cff"),
-      color("#ffffff", "#ffc2df", "#ff5fa5", "#ff5fa5", "#9f8cff"),
-      color("#fffaf8", "#4d2441", "#ffd1e6", "#ffd36a", "#ff6fb5")
+      color("#5d3f5c", "#fff3fa", "#ffc3df", "#ffd7ec", "#d9ddff"),
+      color("#ffffff", "#ffeaf6", "#ffadd6", "#ffadd6", "#c7ceff"),
+      color("#ffffff", "#ffdff1", "#ff92c9", "#ff92c9", "#b4c0ff"),
+      color("#ffffff", "#ffd1eb", "#ff72b8", "#ff72b8", "#9faeff"),
+      color("#fffaff", "#4a2445", "#ffd6ec", "#ffd36a", "#ff78c2")
     ]),
     levelTiers: tiers(levelRanges, [
-      color("#ffffff", "#fff1e6", "#ffbd8a", "#ffbd8a", "#ff8fb8"),
-      color("#ffffff", "#ffe4f0", "#ff9ec8", "#ff9ec8", "#c6b0ff"),
-      color("#ffffff", "#f0e8ff", "#b69cff", "#b69cff", "#ff7fb8"),
-      color("#fffaf8", "#4d2441", "#ffd1e6", "#ffd36a", "#ff6fb5")
+      color("#5d3f5c", "#f7f1ff", "#cdc2ff", "#f7d5ec", "#d9ddff"),
+      color("#ffffff", "#f1eaff", "#b7a8ff", "#b7a8ff", "#ffc3df"),
+      color("#ffffff", "#eadfff", "#a192ff", "#a192ff", "#ff92c9"),
+      color("#fffaff", "#4a2445", "#ffd6ec", "#ffd36a", "#ff78c2")
+    ])
+  },
+
+  merryGoRound: {
+    label: "메리 고 라운드",
+    gift: color("#ffffff", "#fff0f3", "#ff9aa8", "#ff9aa8", "#ffd6a5"),
+    level: color("#ffffff", "#fff5df", "#ffbd85", "#ffbd85", "#ff86b8"),
+    superFan: color("#fffaf4", "#59303a", "#ffe1a8", "#ffe1a8", "#ff7f9e"),
+    giftTiers: tiers(giftRanges, [
+      color("#684855", "#fff7f8", "#ffc7cf", "#ffe2e6", "#fff0c9"),
+      color("#ffffff", "#fff0f3", "#ffb3c1", "#ffb3c1", "#ffd6a5"),
+      color("#ffffff", "#ffe4ea", "#ff9aa8", "#ff9aa8", "#ffc777"),
+      color("#ffffff", "#ffd6df", "#ff7f9e", "#ff7f9e", "#ffb45c"),
+      color("#fffaf4", "#59303a", "#ffe1a8", "#ffe1a8", "#ff7f9e")
+    ]),
+    levelTiers: tiers(levelRanges, [
+      color("#684855", "#fff5df", "#ffe1a8", "#ffe1a8", "#ffc7cf"),
+      color("#ffffff", "#ffecd5", "#ffbd85", "#ffbd85", "#ff9aa8"),
+      color("#ffffff", "#ffe1c2", "#ffa766", "#ffa766", "#ff86b8"),
+      color("#fffaf4", "#59303a", "#ffe1a8", "#ffe1a8", "#ff7f9e")
+    ])
+  },
+
+  algorithmWitch: {
+    label: "알고리즘",
+    gift: color("#ffffff", "#19162d", "#9b7bff", "#8a5cff", "#ff6ec7"),
+    level: color("#ffffff", "#1d1936", "#72d6ff", "#72d6ff", "#b388ff"),
+    superFan: color("#fffaff", "#12091f", "#fff95f", "#fff95f", "#ff4fd8"),
+    giftTiers: tiers(giftRanges, [
+      color("#ffffff", "#2a2547", "#b6a2ff", "#685cff", "#7bc7ff"),
+      color("#ffffff", "#241f40", "#9b7bff", "#8a5cff", "#b388ff"),
+      color("#ffffff", "#1f1a39", "#ff6ec7", "#8a5cff", "#ff6ec7"),
+      color("#ffffff", "#19162d", "#ff4fd8", "#6a3dff", "#ff4fd8"),
+      color("#fffaff", "#12091f", "#fff95f", "#fff95f", "#ff4fd8")
+    ]),
+    levelTiers: tiers(levelRanges, [
+      color("#ffffff", "#2a2547", "#72d6ff", "#72d6ff", "#b388ff"),
+      color("#ffffff", "#241f40", "#8a5cff", "#72d6ff", "#ff6ec7"),
+      color("#ffffff", "#1d1936", "#ff6ec7", "#8a5cff", "#ff6ec7"),
+      color("#fffaff", "#12091f", "#fff95f", "#fff95f", "#ff4fd8")
+    ])
+  },
+
+  midnightFox: {
+    label: "미드나이트",
+    gift: color("#ffffff", "#11112b", "#9d7bff", "#6a00ff", "#00e5ff"),
+    level: color("#ffffff", "#151a36", "#7aa8ff", "#7aa8ff", "#d5b7ff"),
+    superFan: color("#fffaff", "#0a0820", "#e2d6ff", "#e2d6ff", "#7df9ff"),
+    giftTiers: tiers(giftRanges, [
+      color("#ffffff", "#24234a", "#b8a7ff", "#b8a7ff", "#7df9ff"),
+      color("#ffffff", "#1d1c40", "#9d7bff", "#9d7bff", "#00e5ff"),
+      color("#ffffff", "#171735", "#7c5cff", "#7c5cff", "#00c8ff"),
+      color("#ffffff", "#11112b", "#6a00ff", "#6a00ff", "#00e5ff"),
+      color("#fffaff", "#0a0820", "#e2d6ff", "#e2d6ff", "#7df9ff")
+    ]),
+    levelTiers: tiers(levelRanges, [
+      color("#ffffff", "#24234a", "#b8a7ff", "#b8a7ff", "#7df9ff"),
+      color("#ffffff", "#1d1c40", "#7aa8ff", "#7aa8ff", "#d5b7ff"),
+      color("#ffffff", "#151a36", "#a86bff", "#a86bff", "#7df9ff"),
+      color("#fffaff", "#0a0820", "#e2d6ff", "#e2d6ff", "#7df9ff")
+    ])
+  },
+
+  moonTiger: {
+    label: "월하호랑",
+    gift: color("#ffffff", "#17233a", "#8ec5ff", "#8ec5ff", "#d9e8ff"),
+    level: color("#ffffff", "#1f2636", "#ff6b5f", "#ff6b5f", "#8ec5ff"),
+    superFan: color("#fffaf0", "#251313", "#ffd36a", "#ffd36a", "#ff4040"),
+    giftTiers: tiers(giftRanges, [
+      color("#23364f", "#edf7ff", "#b8dcff", "#d9e8ff", "#b8dcff"),
+      color("#ffffff", "#dcefff", "#8ec5ff", "#8ec5ff", "#d9e8ff"),
+      color("#ffffff", "#c8e4ff", "#65aaff", "#65aaff", "#b8dcff"),
+      color("#ffffff", "#17233a", "#ff6b5f", "#8ec5ff", "#ff6b5f"),
+      color("#fffaf0", "#251313", "#ffd36a", "#ffd36a", "#ff4040")
+    ]),
+    levelTiers: tiers(levelRanges, [
+      color("#23364f", "#edf7ff", "#b8dcff", "#d9e8ff", "#b8dcff"),
+      color("#ffffff", "#dcefff", "#8ec5ff", "#8ec5ff", "#d9e8ff"),
+      color("#ffffff", "#1f2636", "#ff6b5f", "#ff6b5f", "#8ec5ff"),
+      color("#fffaf0", "#251313", "#ffd36a", "#ffd36a", "#ff4040")
     ])
   },
   skyCloud: {
