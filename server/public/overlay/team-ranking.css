@@ -9,15 +9,15 @@ html, body {
 }
 
 :root {
-  --ranking-font-size: 20px;
+  --ranking-font-size: 24px;
   --rank-text: #fffaff;
-  --rank-bg: rgba(22, 18, 48, 0.66);
-  --rank-border: rgba(255, 255, 255, 0.28);
-  --rank-grad-from: rgba(255, 143, 229, 0.28);
-  --rank-grad-to: rgba(255, 211, 106, 0.20);
+  --rank-bg: rgba(0, 0, 0, 0.56);
+  --rank-border: rgba(255, 255, 255, 0.18);
+  --rank-grad-from: rgba(0, 0, 0, 0.18);
+  --rank-grad-to: rgba(0, 0, 0, 0.04);
   --rank-accent: #ffd36a;
   --rank-muted: rgba(255, 250, 255, 0.68);
-  --rank-shadow: 0 10px 26px rgba(0, 0, 0, 0.20);
+  --rank-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
   --marquee-distance: 120px;
   --marquee-duration: 9s;
 }
@@ -25,7 +25,7 @@ html, body {
 .team-ranking {
   width: 100vw;
   height: 100vh;
-  padding: 14px 16px;
+  padding: 8px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -42,57 +42,50 @@ html, body {
 .ranking-list {
   width: 100%;
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .rank-item {
   position: relative;
   width: 100%;
   display: grid;
-  grid-template-columns: 40px 42px minmax(0, 1fr) auto;
+  grid-template-columns: 34px 34px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 9px;
-  min-height: 52px;
-  padding: 6px 10px;
+  gap: 7px;
+  min-height: 42px;
+  padding: 5px 8px;
   border: 1px solid var(--rank-border);
-  border-radius: 16px;
+  border-radius: 12px;
   color: var(--rank-text);
   background:
     linear-gradient(135deg, var(--rank-grad-from), var(--rank-grad-to)),
     var(--rank-bg);
   box-shadow: var(--rank-shadow);
-  backdrop-filter: blur(8px);
-  animation: itemIn .24s ease both;
+  backdrop-filter: blur(7px);
+  animation: itemIn .2s ease both;
 }
 
-.rank-item[data-rank="1"] {
-  border-color: var(--rank-accent);
-}
-.rank-item[data-rank="2"],
-.rank-item[data-rank="3"] {
-  border-color: var(--rank-border);
-}
+.rank-item[data-rank="1"] { border-color: var(--rank-accent); }
 
 .rank-badge {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  font-size: calc(var(--ranking-font-size) * .72);
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  font-size: calc(var(--ranking-font-size) * .58);
   font-weight: 1000;
-  color: var(--rank-bg);
-  background: linear-gradient(135deg, #fff, var(--rank-accent));
-  box-shadow: inset 0 -3px 0 rgba(0,0,0,.10);
+  color: #fff;
+  background: rgba(255,255,255,.14);
 }
 
 .avatar {
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   overflow: hidden;
-  border: 2px solid var(--rank-border);
-  background: var(--rank-bg);
+  border: 1px solid var(--rank-border);
+  background: rgba(255,255,255,.08);
   flex: 0 0 auto;
 }
 .avatar-img,
@@ -107,7 +100,7 @@ html, body {
 .avatar-fallback {
   display: grid;
   place-items: center;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 900;
   color: var(--rank-text);
 }
@@ -119,18 +112,8 @@ html, body {
 .member strong {
   display: block;
   font-size: var(--ranking-font-size);
-  line-height: 1.08;
+  line-height: 1.02;
   text-shadow: 0 2px 6px rgba(0,0,0,.22);
-}
-.member span {
-  display: block;
-  margin-top: 1px;
-  color: var(--rank-muted);
-  font-size: calc(var(--ranking-font-size) * .46);
-  line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .nickname-marquee {
@@ -151,13 +134,13 @@ html, body {
 .nickname-gap { width: 42px; flex: 0 0 42px; }
 
 .level {
-  min-width: 74px;
+  min-width: 54px;
   text-align: right;
 }
 .level span {
   display: block;
   color: var(--rank-accent);
-  font-size: calc(var(--ranking-font-size) * .36);
+  font-size: calc(var(--ranking-font-size) * .28);
   font-weight: 900;
   letter-spacing: .06em;
   line-height: 1;
@@ -165,63 +148,58 @@ html, body {
 .level b {
   display: block;
   margin-top: 1px;
-  font-size: calc(var(--ranking-font-size) * .96);
+  font-size: calc(var(--ranking-font-size) * .82);
   line-height: 1;
 }
 
 .ranking-list.card {
-  grid-template-columns: repeat(var(--card-columns, 3), minmax(0, 1fr));
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(var(--card-columns, 3), minmax(96px, 1fr));
+  gap: 6px;
 }
 .ranking-list.card .rank-item {
-  grid-template-columns: 1fr;
-  justify-items: center;
-  text-align: center;
-  min-height: 132px;
-  padding: 12px 8px 10px;
+  grid-template-columns: 28px 30px minmax(0, 1fr) auto;
+  min-height: 42px;
+  padding: 5px 7px;
   gap: 6px;
 }
 .ranking-list.card .rank-badge {
-  position: absolute;
-  top: 7px;
-  left: 7px;
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  font-size: calc(var(--ranking-font-size) * .62);
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: calc(var(--ranking-font-size) * .50);
 }
 .ranking-list.card .avatar {
-  width: 52px;
-  height: 52px;
-}
-.ranking-list.card .member {
-  width: 100%;
+  width: 28px;
+  height: 28px;
 }
 .ranking-list.card .member strong {
-  font-size: calc(var(--ranking-font-size) * .88);
+  font-size: calc(var(--ranking-font-size) * .72);
 }
 .ranking-list.card .level {
-  min-width: 0;
-  text-align: center;
+  min-width: 42px;
+}
+.ranking-list.card .level span {
+  font-size: calc(var(--ranking-font-size) * .24);
 }
 .ranking-list.card .level b {
-  font-size: calc(var(--ranking-font-size) * 1.02);
+  font-size: calc(var(--ranking-font-size) * .74);
 }
 
 .empty {
   width: 100%;
-  padding: 14px 12px;
+  padding: 10px 12px;
   color: var(--rank-muted);
   text-align: center;
   border: 1px dashed var(--rank-border);
-  border-radius: 16px;
-  font-size: calc(var(--ranking-font-size) * .75);
+  border-radius: 12px;
+  font-size: calc(var(--ranking-font-size) * .72);
   font-weight: 800;
   background: var(--rank-bg);
 }
 
 @keyframes itemIn {
-  from { opacity: 0; transform: translateY(7px) scale(.99); }
+  from { opacity: 0; transform: translateY(5px) scale(.99); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -231,10 +209,10 @@ html, body {
 }
 
 @media (max-width: 560px) {
-  .team-ranking { padding: 10px; }
-  .rank-item { grid-template-columns: 34px 36px minmax(0,1fr) auto; gap: 7px; min-height: 46px; padding: 5px 8px; }
-  .rank-badge { width: 30px; height: 30px; border-radius: 10px; }
-  .avatar { width: 34px; height: 34px; }
-  .level { min-width: 60px; }
-  .ranking-list.card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .team-ranking { padding: 6px; }
+  .rank-item { grid-template-columns: 30px 30px minmax(0,1fr) auto; gap: 6px; min-height: 40px; padding: 4px 7px; }
+  .rank-badge { width: 26px; height: 26px; border-radius: 8px; }
+  .avatar { width: 28px; height: 28px; }
+  .level { min-width: 46px; }
+  .ranking-list.card { grid-template-columns: repeat(var(--card-columns, 3), minmax(86px, 1fr)); }
 }

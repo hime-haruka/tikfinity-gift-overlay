@@ -128,7 +128,7 @@ async function loadSettings() {
 
   setValue("teamRankingLayout", currentSettings.teamRanking?.layout || "list");
   setValue("teamRankingMaxItems", currentSettings.teamRanking?.maxItems || 5);
-  setValue("teamRankingFontSize", currentSettings.teamRanking?.fontSize || 20);
+  setValue("teamRankingFontSize", currentSettings.teamRanking?.fontSize || 24);
 
   renderColorEditors(currentSettings);
   await loadState();
@@ -170,7 +170,7 @@ function collectSettings() {
     teamRanking: {
       layout: getValue("teamRankingLayout") === "card" ? "card" : "list",
       maxItems: getNum("teamRankingMaxItems") || 5,
-      fontSize: getNum("teamRankingFontSize") || 20
+      fontSize: getNum("teamRankingFontSize") || 24
     }
   };
 }

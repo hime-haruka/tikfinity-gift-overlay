@@ -22,10 +22,10 @@ function applyRankingColors(settings) {
   const superFan = settings.gift?.superFanColor || {};
   const root = document.documentElement;
   root.style.setProperty("--rank-text", cssValue(base.text, "#fffaff"));
-  root.style.setProperty("--rank-bg", cssValue(base.background, "rgba(22,18,48,.66)"));
-  root.style.setProperty("--rank-border", cssValue(base.border, "rgba(255,255,255,.28)"));
-  root.style.setProperty("--rank-grad-from", cssValue(base.gradientFrom, cssValue(base.background, "#4a2445")));
-  root.style.setProperty("--rank-grad-to", cssValue(base.gradientTo, cssValue(base.border, "#ffd36a")));
+  root.style.setProperty("--rank-border", "rgba(255,255,255,.18)");
+  root.style.setProperty("--rank-bg", "rgba(0,0,0,.56)");
+  root.style.setProperty("--rank-grad-from", "rgba(0,0,0,.18)");
+  root.style.setProperty("--rank-grad-to", "rgba(0,0,0,.04)");
   root.style.setProperty("--rank-accent", cssValue(superFan.gradientFrom || superFan.border || base.border || base.gradientTo, "#ffd36a"));
 }
 
@@ -80,10 +80,10 @@ function render(state) {
   const settings = state.settings?.teamRanking || {};
   const items = state.teamRanking || [];
   const layout = settings.layout === "card" ? "card" : "list";
-  const fontSize = Math.max(12, Math.min(48, Number(settings.fontSize || 20)));
+  const fontSize = Math.max(12, Math.min(48, Number(settings.fontSize || 24)));
 
   document.documentElement.style.setProperty("--ranking-font-size", `${fontSize}px`);
-  document.documentElement.style.setProperty("--card-columns", items.length <= 4 ? "2" : "3");
+  document.documentElement.style.setProperty("--card-columns", String(Math.max(1, items.length || 1)));
   applyRankingColors(state.settings || {});
   document.body.dataset.layout = layout;
   rankingList.className = `ranking-list ${layout}`;
@@ -102,11 +102,10 @@ function render(state) {
       <div class="rank-badge">${escapeHtml(item.rank)}</div>
       <div class="avatar">${renderAvatar(item)}</div>
       <div class="member">
-        <strong>${marqueeName(item.nickname || item.uniqueId || "익명")}</strong>
-        <span>${item.uniqueId ? "@" + escapeHtml(item.uniqueId) : "Team Member"}</span>
+        <strong>${marqueeName(item.nickname || "익명")}</strong>
       </div>
       <div class="level">
-        <span>TEAM LV</span>
+        <span>LV</span>
         <b>${escapeHtml(item.teamLevel || 0)}</b>
       </div>
     </article>`;
