@@ -20,7 +20,7 @@
       "gift": true,
       "level": true,
       "all": true,
-      "team-ranking": true
+      "team-ranking": false
     }
   },
   "roro": {
@@ -32,7 +32,7 @@
       "gift": true,
       "level": true,
       "all": true,
-      "team-ranking": true
+      "team-ranking": false
     }
   },
   "midnight": {
@@ -44,7 +44,7 @@
       "gift": true,
       "level": true,
       "all": true,
-      "team-ranking": true
+      "team-ranking": false
     }
   },
   "hoddo": {
@@ -56,7 +56,7 @@
       "gift": true,
       "level": true,
       "all": true,
-      "team-ranking": true
+      "team-ranking": false
     }
   }
 }
