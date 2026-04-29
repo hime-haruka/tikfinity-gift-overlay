@@ -8,8 +8,60 @@ function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
 }
 
+function cssValue(value, fallback) {
+  const v = String(value || "").trim();
+  return v || fallback;
+}
+
 function initials(name) {
   return String(name || "?").trim().slice(0, 1).toUpperCase() || "?";
+}
+
+function applyRankingColors(settings) {
+  const base = settings.level?.colors || settings.gift?.colors || {};
+  const superFan = settings.gift?.superFanColor || {};
+  const root = document.documentElement;
+  root.style.setProperty("--rank-text", cssValue(base.text, "#fffaff"));
+  root.style.setProperty("--rank-bg", cssValue(base.background, "rgba(22,18,48,.66)"));
+  root.style.setProperty("--rank-border", cssValue(base.border, "rgba(255,255,255,.28)"));
+  root.style.setProperty("--rank-grad-from", cssValue(base.gradientFrom, cssValue(base.background, "#4a2445")));
+  root.style.setProperty("--rank-grad-to", cssValue(base.gradientTo, cssValue(base.border, "#ffd36a")));
+  root.style.setProperty("--rank-accent", cssValue(superFan.gradientFrom || superFan.border || base.border || base.gradientTo, "#ffd36a"));
+}
+
+function marqueeName(text) {
+  const safe = escapeHtml(text || "익명");
+  return `<span class="nickname-marquee"><span class="nickname-track"><span class="nickname-main">${safe}</span><span class="nickname-gap" aria-hidden="true"></span><span class="nickname-copy" aria-hidden="true">${safe}</span></span></span>`;
+}
+
+function refreshMarquees(root = document) {
+  root.querySelectorAll(".nickname-marquee").forEach((el) => {
+    const track = el.querySelector(".nickname-track");
+    const main = el.querySelector(".nickname-main");
+    if (!track || !main) return;
+
+    const available = Math.round(el.clientWidth || 0);
+    const textWidth = Math.ceil(main.scrollWidth || 0);
+    const key = `${available}:${textWidth}:${main.textContent || ""}`;
+    if (el.dataset.key === key) return;
+    el.dataset.key = key;
+
+    el.classList.remove("is-overflow");
+    track.style.animation = "none";
+    track.style.transform = "translateX(0)";
+    void track.offsetWidth;
+
+    if (available > 0 && textWidth > available + 2) {
+      const gap = 42;
+      const distance = textWidth + gap;
+      const duration = Math.max(6, Math.min(16, distance / 32));
+      el.style.setProperty("--marquee-distance", `${distance}px`);
+      el.style.setProperty("--marquee-duration", `${duration}s`);
+      el.classList.add("is-overflow");
+      track.style.animation = "";
+      track.style.transform = "";
+    }
+  });
 }
 
 function renderAvatar(item) {
@@ -28,9 +80,11 @@ function render(state) {
   const settings = state.settings?.teamRanking || {};
   const items = state.teamRanking || [];
   const layout = settings.layout === "card" ? "card" : "list";
-  const fontSize = Math.max(12, Math.min(96, Number(settings.fontSize || 28)));
+  const fontSize = Math.max(12, Math.min(48, Number(settings.fontSize || 20)));
 
   document.documentElement.style.setProperty("--ranking-font-size", `${fontSize}px`);
+  document.documentElement.style.setProperty("--card-columns", items.length <= 4 ? "2" : "3");
+  applyRankingColors(state.settings || {});
   document.body.dataset.layout = layout;
   rankingList.className = `ranking-list ${layout}`;
 
@@ -48,7 +102,7 @@ function render(state) {
       <div class="rank-badge">${escapeHtml(item.rank)}</div>
       <div class="avatar">${renderAvatar(item)}</div>
       <div class="member">
-        <strong>${escapeHtml(item.nickname || item.uniqueId || "익명")}</strong>
+        <strong>${marqueeName(item.nickname || item.uniqueId || "익명")}</strong>
         <span>${item.uniqueId ? "@" + escapeHtml(item.uniqueId) : "Team Member"}</span>
       </div>
       <div class="level">
@@ -58,6 +112,7 @@ function render(state) {
     </article>`;
   }).join("");
   previousKeys = nextKeys;
+  requestAnimationFrame(() => refreshMarquees(rankingList));
 }
 
 async function loadState() {
@@ -69,3 +124,4 @@ async function loadState() {
 
 loadState().catch(renderEmpty);
 setInterval(() => loadState().catch(() => {}), 1500);
+window.addEventListener("resize", () => requestAnimationFrame(() => refreshMarquees(rankingList)));

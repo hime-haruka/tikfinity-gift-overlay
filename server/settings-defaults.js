@@ -274,6 +274,6 @@ export const DEFAULT_SETTINGS = {
   teamRanking: {
     layout: "list",
     maxItems: 5,
-    fontSize: 28
+    fontSize: 20
   }
 };
