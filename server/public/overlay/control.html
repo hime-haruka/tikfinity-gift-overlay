@@ -31,6 +31,8 @@
       <button class="tab" data-tab="urls">URL/테스트</button>
     </nav>
 
+    <aside id="remotePanel" class="remote-panel" aria-label="테스트 리모콘"></aside>
+
     <section class="tab-page active" data-page="gift">
       <section class="panel">
         <div class="panel-head"><span class="icon">🎁</span><div><h2>기프트 표시</h2><p>기프트 카드 표시 정보와 정렬 방식을 설정합니다.</p></div></div>
@@ -136,27 +138,7 @@
         <div class="panel-head"><span class="icon">🔗</span><div><h2>오버레이 URL</h2><p>OBS 브라우저 소스에 각각 넣어 사용할 수 있습니다.</p></div></div>
         <div id="urlList" class="url-list"></div>
       </section>
-      <section class="panel">
-        <div class="panel-head"><span class="icon">🧪</span><div><h2>테스트/초기화</h2><p>실제 방송 전에 표시 상태를 확인합니다.</p></div></div>
-        <div class="test-grid">
-          <label class="field">테스트 기프트 닉네임<input id="testGiftNickname" type="text" value="엄청긴닉네임_테스트후원자_전광판확인용_길게흘러가야함"></label>
-          <label class="field">기프트 금액<input id="testGiftCoins" type="number" min="0" step="1" value="5000"></label>
-          <label class="field">기프트 수량<input id="testGiftCount" type="number" min="1" step="1" value="1"></label>
-          <label class="toggle test-toggle"><input id="testGiftSuperFan" type="checkbox"><span>슈퍼팬으로 테스트</span></label>
-          <label class="field">테스트 레벨업 닉네임<input id="testLevelNickname" type="text" value="엄청긴닉네임_레벨업멤버_전광판확인용_길게흘러가야함"></label>
-          <label class="field">이전 레벨<input id="testPreviousLevel" type="number" min="0" step="1" value="19"></label>
-          <label class="field">현재 레벨<input id="testLevelValue" type="number" min="0" step="1" value="20"></label>
-          <label class="field">테스트 팀랭킹 닉네임<input id="testTeamRankingNickname" type="text" value="팀랭킹_테스트유저"></label>
-          <label class="field">테스트 팀 레벨<input id="testTeamRankingLevel" type="number" min="1" step="1" value="25"></label>
-        </div>
-        <div class="actions inline">
-          <button id="testGiftBtn" type="button">테스트 기프트</button>
-          <button id="testLevelBtn" type="button">테스트 레벨업</button>
-          <button id="testTeamRankingBtn" type="button">테스트 팀랭킹</button>
-          <button id="testSuperFanBtn" type="button">테스트 슈퍼팬 등록+기프트</button>
-          <button id="resetBtn" type="button" class="ghost">화면 초기화</button>
-        </div>
-      </section>
+
     </section>
 
     <section class="actions">

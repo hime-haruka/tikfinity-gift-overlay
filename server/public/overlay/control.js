@@ -284,6 +284,7 @@ async function loadUrls() {
 function switchTab(tab) {
   document.querySelectorAll(".tab").forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === tab));
   document.querySelectorAll(".tab-page").forEach((page) => page.classList.toggle("active", page.dataset.page === tab));
+  renderRemote(tab);
 }
 
 document.querySelector(".tabs").addEventListener("click", (event) => {
@@ -301,6 +302,11 @@ document.body.addEventListener("click", async (event) => {
   const openBtn = event.target.closest("[data-open-url]");
   const copyBtn = event.target.closest("[data-copy-url]");
   const presetBtn = event.target.closest("[data-preset-key]");
+  const remoteBtn = event.target.closest("[data-remote-action]");
+  if (remoteBtn) {
+    await runRemoteAction(remoteBtn.dataset.remoteAction).catch((err) => setStatus(`테스트 실패: ${err.message}`));
+    return;
+  }
   if (openBtn) window.open(openBtn.dataset.openUrl, "_blank");
   if (copyBtn) {
     await navigator.clipboard.writeText(copyBtn.dataset.copyUrl);
@@ -311,65 +317,72 @@ document.body.addEventListener("click", async (event) => {
 
 $("saveBtn").addEventListener("click", () => saveSettings().catch((err) => setStatus(`저장 실패: ${err.message}`)));
 $("reloadStateBtn").addEventListener("click", () => loadState().then(() => setStatus("목록을 새로고침했습니다.")).catch((err) => setStatus(`목록 로드 실패: ${err.message}`)));
-$("testGiftBtn").addEventListener("click", async () => {
-  const nickname = getValue("testGiftNickname") || "테스트 닉네임";
-  const coins = getNum("testGiftCoins") || 500;
-  const count = getNum("testGiftCount") || 1;
-  const isSuperFan = getChecked("testGiftSuperFan");
-  const userId = isSuperFan ? "test-superfan-user" : `test-user-${Date.now()}`;
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, uniqueId: userId, nickname, coins, count, superFan: isSuperFan })
-  });
-  await loadState();
-  setStatus("테스트 기프트를 보냈습니다.");
-});
-$("testLevelBtn").addEventListener("click", async () => {
-  const nickname = getValue("testLevelNickname") || "테스트 닉네임";
-  const previousLevel = getNum("testPreviousLevel") || 9;
-  const level = getNum("testLevelValue") || 10;
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/level`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nickname, previousLevel, level })
-  });
-  await loadState();
-  setStatus("테스트 레벨업을 보냈습니다.");
-});
-$("testTeamRankingBtn").addEventListener("click", async () => {
-  const nickname = getValue("testTeamRankingNickname") || "팀랭킹_테스트유저";
-  const level = getNum("testTeamRankingLevel") || 25;
-  const userId = `test-team-user-${Date.now()}`;
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/team-ranking`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, uniqueId: userId, nickname, teamLevel: level })
-  });
-  await loadState();
-  setStatus("테스트 팀랭킹 데이터를 보냈습니다.");
-});
+async function runRemoteAction(action) {
+  if (action === "gift") {
+    const nickname = remoteValue("giftNickname") || "테스트 닉네임";
+    const coins = remoteNum("giftCoins", 500);
+    const count = remoteNum("giftCount", 1);
+    const isSuperFan = Boolean(remoteValue("giftSuperFan"));
+    const userId = isSuperFan ? "test-superfan-user" : `test-user-${Date.now()}`;
+    await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, uniqueId: userId, nickname, coins, count, superFan: isSuperFan })
+    });
+    await loadState();
+    setStatus("테스트 기프트를 보냈습니다.");
+    return;
+  }
+  if (action === "level") {
+    const nickname = remoteValue("levelNickname") || "테스트 닉네임";
+    const previousLevel = remoteNum("previousLevel", 9);
+    const level = remoteNum("levelValue", 10);
+    await fetch(`/api/test/${encodeURIComponent(clientId)}/level`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nickname, previousLevel, level })
+    });
+    await loadState();
+    setStatus("테스트 레벨업을 보냈습니다.");
+    return;
+  }
+  if (action === "superfan") {
+    const nickname = remoteValue("giftNickname") || "테스트 닉네임";
+    await fetch(`/api/test/${encodeURIComponent(clientId)}/superfan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: "test-superfan-user", uniqueId: "test-superfan-user", nickname })
+    });
+    await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: "test-superfan-user", uniqueId: "test-superfan-user", nickname, coins: remoteNum("giftCoins", 1000), count: remoteNum("giftCount", 1), superFan: true })
+    });
+    await loadState();
+    setStatus("테스트 유저를 슈퍼팬으로 등록하고 기프트를 보냈습니다.");
+    return;
+  }
+  if (action === "teamRanking") {
+    const nickname = remoteValue("teamNickname") || "팀랭킹_테스트유저";
+    const level = remoteNum("teamLevel", 25);
+    const userId = `test-team-user-${Date.now()}`;
+    await fetch(`/api/test/${encodeURIComponent(clientId)}/team-ranking`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, uniqueId: userId, nickname, teamLevel: level })
+    });
+    await loadState();
+    setStatus("테스트 팀랭킹 데이터를 보냈습니다.");
+    return;
+  }
+  if (action === "reset") {
+    await fetch(`/api/reset/${encodeURIComponent(clientId)}`, { method: "POST" });
+    await loadState();
+    setStatus("화면 상태를 초기화했습니다. 슈퍼팬·팀랭킹 기록과 설정은 유지됩니다.");
+  }
+}
 
-$("testSuperFanBtn").addEventListener("click", async () => {
-  const nickname = getValue("testGiftNickname") || "테스트 닉네임";
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/superfan`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId: "test-superfan-user", uniqueId: "test-superfan-user", nickname })
-  });
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId: "test-superfan-user", uniqueId: "test-superfan-user", nickname, coins: getNum("testGiftCoins") || 1000, count: getNum("testGiftCount") || 1, superFan: true })
-  });
-  await loadState();
-  setStatus("테스트 유저를 슈퍼팬으로 등록하고 기프트를 보냈습니다.");
-});
-$("resetBtn").addEventListener("click", async () => {
-  await fetch(`/api/reset/${encodeURIComponent(clientId)}`, { method: "POST" });
-  await loadState();
-  setStatus("화면 상태를 초기화했습니다. 슈퍼팬·팀랭킹 기록과 설정은 유지됩니다.");
-});
 
+renderRemote("gift");
 loadSettings().catch((err) => setStatus(`설정 로드 실패: ${err.message}`));
 setInterval(() => loadState().catch(() => {}), 3000);
