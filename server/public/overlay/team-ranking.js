@@ -64,12 +64,13 @@ function refreshMarquees(root = document) {
   });
 }
 
-function renderAvatar(item) {
+function renderAvatar(item, rank) {
+  const crown = Number(rank) === 1 ? `<span class="crown" aria-hidden="true">♛</span>` : "";
   if (item.profileImage) {
-    return `<img class="avatar-img" src="${escapeHtml(item.profileImage)}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
+    return `${crown}<img class="avatar-img" src="${escapeHtml(item.profileImage)}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
       <span class="avatar-fallback" style="display:none">${escapeHtml(initials(item.nickname))}</span>`;
   }
-  return `<span class="avatar-fallback">${escapeHtml(initials(item.nickname))}</span>`;
+  return `${crown}<span class="avatar-fallback">${escapeHtml(initials(item.nickname))}</span>`;
 }
 
 function renderEmpty() {
@@ -100,7 +101,7 @@ function render(state) {
     const isNew = !previousKeys.has(key);
     return `<article class="rank-item ${isNew ? "is-new" : ""}" data-rank="${item.rank}">
       <div class="rank-badge">${escapeHtml(item.rank)}</div>
-      <div class="avatar">${renderAvatar(item)}</div>
+      <div class="avatar">${renderAvatar(item, item.rank)}</div>
       <div class="member">
         <strong>${marqueeName(item.nickname || "익명")}</strong>
       </div>
