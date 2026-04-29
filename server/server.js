@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { addGift, addLevelCard, getClient, getPublicState, hydrateStateFromSupabase, markSeen, pushRecentEvent, recordSuperFan, recordTeamRanking, resetClient, setPinned, updateSettings } from "./state.js";
+import { addGift, addLevelCard, getClient, getPublicState, hydrateStateFromSupabase, markSeen, pushRecentEvent, recordSuperFan, recordTeamRanking, resetClient, resetTeamRanking, setPinned, updateSettings } from "./state.js";
 import { extractEventName, getMemberLevelFromAnyEvent, normalizeGift, normalizeMemberLevelChange, normalizeSuperFanEvent } from "./event-normalizer.js";
 import { getAllowedOverlays, getRegisteredClient } from "./clients.js";
 import { COLOR_PRESETS } from "./settings-defaults.js";
@@ -106,6 +106,10 @@ app.post("/api/reset/:clientId", requireRegisteredClient, (req, res) => {
   res.json({ ok: true, state: resetClient(req.clientId) });
 });
 
+app.post("/api/reset/:clientId/team-ranking", requireRegisteredClient, (req, res) => {
+  res.json({ ok: true, state: resetTeamRanking(req.clientId) });
+});
+
 app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
   const { clientId, client } = getClient(req.clientId);
   const payload = req.body || {};
@@ -164,6 +168,8 @@ app.post("/api/test/:clientId/gift", requireRegisteredClient, (req, res) => {
     uniqueId: body.uniqueId || (body.superFan ? "test_superfan_user" : "test_user"),
     nickname: body.nickname || "엄청긴닉네임_테스트후원자_전광판확인용",
     profileImage: body.profileImage || "",
+    superFan: body.superFan === true,
+    ignoreSuperFan: body.superFan !== true,
     giftId: "test-gift",
     giftName: body.giftName || "Rose",
     giftImage: body.giftImage || "",

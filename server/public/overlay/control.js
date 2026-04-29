@@ -314,6 +314,7 @@ function renderRemote(tab) {
       <label>닉네임<input id="teamNickname" type="text" value="팀랭킹_테스트유저"></label>
       <label>팀 레벨<input id="teamLevel" type="number" min="0" step="1" value="25"></label>
       <button type="button" data-remote-action="teamRanking">팀 랭킹 추가</button>
+      <button type="button" class="ghost danger" data-remote-action="resetTeamRanking">팀랭킹 초기화</button>
       <button type="button" class="ghost" data-remote-action="reset">화면 초기화</button>
     `;
     return;
@@ -433,6 +434,13 @@ async function runRemoteAction(action) {
     });
     await loadState();
     setStatus("테스트 팀랭킹 데이터를 보냈습니다.");
+    return;
+  }
+  if (action === "resetTeamRanking") {
+    if (!confirm("팀랭킹 기록을 모두 초기화할까요?")) return;
+    await fetch(`/api/reset/${encodeURIComponent(clientId)}/team-ranking`, { method: "POST" });
+    await loadState();
+    setStatus("팀랭킹 기록을 초기화했습니다.");
     return;
   }
   if (action === "reset") {
