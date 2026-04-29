@@ -60,6 +60,10 @@ html, body {
   color: var(--rank-text);
   background: linear-gradient(135deg, var(--rank-bg-2), var(--rank-bg));
   box-shadow: var(--rank-shadow);
+}
+
+
+.rank-item.is-new {
   animation: itemIn .2s ease both;
 }
 
