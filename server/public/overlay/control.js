@@ -36,29 +36,43 @@ function colorToHex(value) {
 function setValue(id, v) { const el = $(id); el.value = el.type === "color" ? colorToHex(v) : (v ?? ""); }
 function escapeHtml(v) { return String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
-function colorInputs(prefix, color = {}) {
+function colorInputs(prefix) {
   return `
     <label class="toggle"><input id="${prefix}_useGradient" type="checkbox"><span>그라데이션</span></label>
     ${COLOR_KEYS.map(([key, label]) => `<label class="color-field">${label}<input id="${prefix}_${key}" type="color"></label>`).join("")}
   `;
 }
 
+function renderPresetPalette() {
+  const active = currentSettings?.activePreset || "purpleDream";
+  $("presetPalette").innerHTML = Object.entries(presets).map(([key, preset]) => {
+    const g = preset.gift || {};
+    const l = preset.level || {};
+    const sf = preset.superFan || g;
+    const bg = `linear-gradient(135deg, ${g.gradientFrom || g.border || "#ddd"}, ${g.gradientTo || l.gradientTo || "#fff"})`;
+    return `<button type="button" class="preset-chip ${key === active ? "active" : ""}" data-preset-key="${escapeHtml(key)}" title="${escapeHtml(preset.label || key)}">
+      <span class="preset-dot" style="--preset-bg:${escapeHtml(bg)}"><i style="background:${escapeHtml(l.gradientFrom || l.border || "#ddd")}"></i><b style="background:${escapeHtml(sf.gradientFrom || sf.border || "#ffd36a")}"></b></span>
+      <span>${escapeHtml(preset.label || key)}</span>
+    </button>`;
+  }).join("");
+}
+
 function renderColorEditors(settings) {
-  $("giftBaseColorGrid").innerHTML = colorInputs("giftBase", settings.gift.colors);
-  $("levelBaseColorGrid").innerHTML = colorInputs("levelBase", settings.level.colors);
-  $("superFanColorGrid").innerHTML = colorInputs("superFan", settings.gift.superFanColor);
+  $("giftBaseColorGrid").innerHTML = colorInputs("giftBase");
+  $("levelBaseColorGrid").innerHTML = colorInputs("levelBase");
+  $("superFanColorGrid").innerHTML = colorInputs("superFan");
 
   $("giftTierGrid").innerHTML = (settings.gift.tiers || []).map((tier, i) => `
     <article class="tier-card">
       <h4>${escapeHtml(tier.label || `${tier.min}+`)}</h4>
-      <div class="mini-colors">${colorInputs(`giftTier_${i}`, tier.color)}</div>
+      <div class="mini-colors">${colorInputs(`giftTier_${i}`)}</div>
     </article>
   `).join("");
 
   $("levelTierGrid").innerHTML = (settings.level.tiers || []).map((tier, i) => `
     <article class="tier-card">
       <h4>${escapeHtml(tier.label || `${tier.min}+`)}</h4>
-      <div class="mini-colors">${colorInputs(`levelTier_${i}`, tier.color)}</div>
+      <div class="mini-colors">${colorInputs(`levelTier_${i}`)}</div>
     </article>
   `).join("");
 
@@ -91,8 +105,8 @@ async function loadSettings() {
   currentSettings = data.settings;
   presets = data.presets || {};
 
-  $("activePreset").innerHTML = Object.entries(presets).map(([key, preset]) => `<option value="${key}">${escapeHtml(preset.label || key)}</option>`).join("");
   setValue("activePreset", currentSettings.activePreset || "purpleDream");
+  renderPresetPalette();
 
   setChecked("showGiftName", currentSettings.gift.showGiftName);
   setChecked("showGiftImage", currentSettings.gift.showGiftImage);
@@ -103,7 +117,6 @@ async function loadSettings() {
   setValue("maxCards", currentSettings.gift.maxCards);
   setValue("giftFontSize", currentSettings.gift.fontSize || 28);
   setValue("giftCardHeight", currentSettings.gift.cardHeight || 96);
-  setValue("superFanIds", (currentSettings.gift.superFanIds || []).join(", "));
 
   setChecked("levelEnabled", currentSettings.level.enabled);
   setValue("levelMaxCards", currentSettings.level.maxCards);
@@ -132,7 +145,6 @@ function collectSettings() {
       fontSize: getNum("giftFontSize"),
       cardHeight: getNum("giftCardHeight"),
       pinnedIds: currentSettings.gift.pinnedIds || [],
-      superFanIds: getValue("superFanIds").split(",").map((v) => v.trim()).filter(Boolean),
       colors: getColor("giftBase"),
       superFanColor: getColor("superFan"),
       tiers: giftTiers
@@ -158,17 +170,22 @@ async function saveSettings() {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
   currentSettings = data.settings;
+  renderPresetPalette();
   setStatus("저장 완료. 오버레이에 곧 반영됩니다.");
   await loadState();
 }
 
-function applyPresetToUI() {
-  const preset = presets[getValue("activePreset")];
+function applyPresetToUI(key = getValue("activePreset")) {
+  const preset = presets[key];
   if (!preset) return;
+  setValue("activePreset", key);
+  currentSettings.activePreset = key;
   setColor("giftBase", preset.gift);
   setColor("levelBase", preset.level);
-  (currentSettings.gift.tiers || []).forEach((tier, i) => setColor(`giftTier_${i}`, preset.gift));
-  (currentSettings.level.tiers || []).forEach((tier, i) => setColor(`levelTier_${i}`, preset.level));
+  setColor("superFan", preset.superFan || preset.gift);
+  (currentSettings.gift.tiers || []).forEach((tier, i) => setColor(`giftTier_${i}`, preset.giftTiers?.[i]?.color || preset.gift));
+  (currentSettings.level.tiers || []).forEach((tier, i) => setColor(`levelTier_${i}`, preset.levelTiers?.[i]?.color || preset.level));
+  renderPresetPalette();
   setStatus("프리셋을 화면에 적용했습니다. 저장 버튼을 눌러 반영하세요.");
 }
 
@@ -177,6 +194,7 @@ async function loadState() {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   latestState = await res.json();
   currentSettings = latestState.settings;
+  renderPresetPalette();
   renderPinList("gift", latestState.gifts || []);
   renderPinList("level", latestState.levelCards || []);
 }
@@ -192,7 +210,7 @@ function renderPinList(type, items) {
       ? `${item.nickname || "익명"} / ${item.giftName || "Gift"}`
       : `${item.nickname || "익명"} / Lv.${item.previousLevel || 0} → Lv.${item.level || 0}`;
     const sub = type === "gift"
-      ? `${Number(item.totalCoins || 0).toLocaleString()}코인 · ${new Date(item.createdAt || Date.now()).toLocaleTimeString()}`
+      ? `${item.isSuperFan ? "슈퍼팬 · " : ""}${Number(item.totalCoins || 0).toLocaleString()}코인 · ${new Date(item.createdAt || Date.now()).toLocaleTimeString()}`
       : `${new Date(item.createdAt || Date.now()).toLocaleTimeString()}`;
     return `<label class="pin-row">
       <input type="checkbox" data-pin-type="${type}" data-pin-id="${escapeHtml(item.id)}" ${item.pinned ? "checked" : ""}>
@@ -250,15 +268,16 @@ document.body.addEventListener("change", async (event) => {
 document.body.addEventListener("click", async (event) => {
   const openBtn = event.target.closest("[data-open-url]");
   const copyBtn = event.target.closest("[data-copy-url]");
+  const presetBtn = event.target.closest("[data-preset-key]");
   if (openBtn) window.open(openBtn.dataset.openUrl, "_blank");
   if (copyBtn) {
     await navigator.clipboard.writeText(copyBtn.dataset.copyUrl);
     setStatus("URL을 복사했습니다.");
   }
+  if (presetBtn) applyPresetToUI(presetBtn.dataset.presetKey);
 });
 
 $("saveBtn").addEventListener("click", () => saveSettings().catch((err) => setStatus(`저장 실패: ${err.message}`)));
-$("applyPresetBtn").addEventListener("click", applyPresetToUI);
 $("reloadStateBtn").addEventListener("click", () => loadState().then(() => setStatus("목록을 새로고침했습니다.")).catch((err) => setStatus(`목록 로드 실패: ${err.message}`)));
 $("testGiftBtn").addEventListener("click", async () => {
   await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ coins: 500, count: 2 }) });
@@ -270,10 +289,16 @@ $("testLevelBtn").addEventListener("click", async () => {
   await loadState();
   setStatus("테스트 레벨업을 보냈습니다.");
 });
+$("testSuperFanBtn").addEventListener("click", async () => {
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/superfan`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: "test-user", uniqueId: "test_user", nickname: "엄청긴닉네임_테스트후원자_전광판확인용", coins: 1000, count: 1 }) });
+  await loadState();
+  setStatus("테스트 유저를 슈퍼팬으로 등록하고 기프트를 보냈습니다.");
+});
 $("resetBtn").addEventListener("click", async () => {
   await fetch(`/api/reset/${encodeURIComponent(clientId)}`, { method: "POST" });
   await loadState();
-  setStatus("화면 상태를 초기화했습니다.");
+  setStatus("화면 상태를 초기화했습니다. 슈퍼팬 기록과 설정은 유지됩니다.");
 });
 
 loadSettings().catch((err) => setStatus(`설정 로드 실패: ${err.message}`));

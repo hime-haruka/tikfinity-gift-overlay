@@ -134,3 +134,35 @@ export function normalizeMemberLevelChange(client, payload) {
     createdAt: Date.now()
   };
 }
+
+export function normalizeSuperFanEvent(payload) {
+  const eventName = extractEventName(payload).replace(/[_\-\s]/g, "").toLowerCase();
+  if (!["superfan", "superfanjoin", "superfanbox"].includes(eventName)) return null;
+
+  const data = extractData(payload);
+  const user = data.user || data.sender || data.member || data.owner || data.envelopeInfo?.user || {};
+  const userId = str(
+    data.userId,
+    data.user_id,
+    data.uniqueId,
+    data.username,
+    data.nickname,
+    user.userId,
+    user.user_id,
+    user.uniqueId,
+    user.username,
+    user.nickname
+  );
+  if (!userId) return null;
+
+  return {
+    type: eventName === "superfanbox" ? "super_fan_box" : "super_fan",
+    eventName,
+    userId,
+    uniqueId: str(data.uniqueId, data.username, user.uniqueId, user.username),
+    nickname: str(data.nickname, data.displayName, user.nickname, user.displayName, data.uniqueId, data.username, "익명"),
+    profileImage: str(data.profilePictureUrl, data.profileImage, data.avatar, user.profilePictureUrl, user.profileImage, user.avatar),
+    content: str(data.content?.defaultPattern, data.commonBarrageContent?.defaultPattern),
+    createdAt: Date.now()
+  };
+}

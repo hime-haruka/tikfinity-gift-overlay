@@ -48,6 +48,7 @@ function scheduleSave() {
         compact.clients[clientId] = {
           settings: client.settings,
           memberLevels: client.memberLevels || {},
+          superFans: client.superFans || {},
           feedItems: client.feedItems || []
         };
       }
@@ -64,7 +65,8 @@ function normalizeClientShape(client) {
   client.settings = deepMerge(DEFAULT_SETTINGS, client.settings || {});
   client.settings.gift.pinnedIds ||= [];
   client.settings.level.pinnedIds ||= [];
-  client.settings.gift.superFanIds ||= [];
+  if (client.settings.gift.superFanIds) delete client.settings.gift.superFanIds;
+  client.superFans ||= {};
   client.gifts ||= [];
   client.levelCards ||= [];
   client.feedItems ||= [];
@@ -89,6 +91,7 @@ export function getClient(clientIdRaw) {
       levelCards: [],
       feedItems: [],
       memberLevels: {},
+      superFans: {},
       recentEvents: [],
       seenEventIds: {}
     };
@@ -131,6 +134,38 @@ export function markSeen(client, eventId) {
 export function pushRecentEvent(client, item) {
   client.recentEvents.unshift({ ...item, at: now() });
   client.recentEvents = client.recentEvents.slice(0, 60);
+}
+
+export function recordSuperFan(client, info) {
+  if (!info?.userId) return null;
+  client.superFans ||= {};
+  const key = String(info.userId);
+  client.superFans[key] = {
+    userId: key,
+    uniqueId: info.uniqueId || "",
+    nickname: info.nickname || "익명",
+    profileImage: info.profileImage || "",
+    eventName: info.eventName || "superfan",
+    lastSeenAt: now(),
+    createdAt: client.superFans[key]?.createdAt || now()
+  };
+  scheduleSave();
+  return client.superFans[key];
+}
+
+function getSuperFanInfo(client, item) {
+  client.superFans ||= {};
+  const candidates = [item.userId, item.uniqueId, item.nickname]
+    .map((v) => String(v || "").trim())
+    .filter(Boolean);
+  for (const value of candidates) {
+    if (client.superFans[value]) return client.superFans[value];
+  }
+  const lower = candidates.map((v) => v.toLowerCase());
+  return Object.values(client.superFans).find((fan) => {
+    const fanValues = [fan.userId, fan.uniqueId, fan.nickname].map((v) => String(v || "").trim().toLowerCase()).filter(Boolean);
+    return fanValues.some((v) => lower.includes(v));
+  }) || null;
 }
 
 function isGift(item) { return item.feedType === "gift" || item.type === "gift"; }
@@ -191,8 +226,11 @@ export function addGift(client, gift) {
   const s = client.settings.gift;
   if (Number(gift.totalCoins || 0) < Number(s.minCoins || 0)) return null;
 
+  const superFan = getSuperFanInfo(client, gift);
   const item = {
     ...gift,
+    isSuperFan: Boolean(superFan),
+    superFanNickname: superFan?.nickname || "",
     feedType: "gift",
     id: gift.id || `gift:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     createdAt: gift.createdAt || now()
@@ -248,6 +286,7 @@ export function getPublicState(clientIdRaw) {
     gifts,
     levelCards,
     allItems: client.feedItems,
+    superFans: client.superFans || {},
     serverTime: now()
   };
 }

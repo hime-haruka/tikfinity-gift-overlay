@@ -130,3 +130,14 @@ html, body {
   .level-message { font-size: calc(var(--level-font-size) * .86); }
   .diamond { display: none; }
 }
+.superfan-badge {
+  flex: 0 0 auto;
+  font-size: .48em;
+  font-weight: 900;
+  padding: .34em .62em;
+  border-radius: 999px;
+  color: #3b2a17;
+  background: linear-gradient(135deg, #fff6b8, #ffd36a);
+  border: 1px solid rgba(255,255,255,.58);
+  box-shadow: 0 0 16px rgba(255, 211, 106, .35);
+}

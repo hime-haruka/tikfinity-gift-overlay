@@ -53,8 +53,7 @@
       </section>
 
       <section class="panel">
-        <div class="panel-head"><span class="icon">👑</span><div><h2>슈퍼 팬 컬러</h2><p>입력한 유저 ID/닉네임이 보낸 기프트는 전용 컬러로 표시합니다.</p></div></div>
-        <label class="field full">슈퍼 팬 ID/닉네임 목록<input id="superFanIds" placeholder="쉼표로 구분: user_id, 닉네임"></label>
+        <div class="panel-head"><span class="icon">👑</span><div><h2>슈퍼 팬 컬러</h2><p>슈퍼팬 입장/가입 이벤트가 감지된 유저의 기프트는 전용 컬러로 표시합니다. 서버에 저장되어 재시작 후에도 유지됩니다.</p></div></div>
         <div id="superFanColorGrid" class="single-color-grid"></div>
       </section>
     </section>
@@ -81,10 +80,9 @@
     <section class="tab-page" data-page="colors">
       <section class="panel">
         <div class="panel-head"><span class="icon">🌈</span><div><h2>컬러 프리셋</h2><p>전체 분위기를 빠르게 바꿀 수 있는 프리셋입니다.</p></div></div>
-        <div class="grid two">
-          <label class="field">프리셋 선택<select id="activePreset"></select></label>
-          <div class="preset-actions"><button id="applyPresetBtn" type="button">프리셋 적용</button></div>
-        </div>
+        <input id="activePreset" type="hidden">
+        <div id="presetPalette" class="preset-palette" aria-label="컬러 프리셋 목록"></div>
+        <p class="preset-help">원형 프리셋을 클릭하면 기프트/레벨업/금액별/레벨별 컬러가 함께 적용됩니다. 저장 버튼을 눌러야 오버레이에 반영됩니다.</p>
       </section>
 
       <section class="panel">
@@ -116,6 +114,7 @@
         <div class="actions inline">
           <button id="testGiftBtn" type="button">테스트 기프트</button>
           <button id="testLevelBtn" type="button">테스트 레벨업</button>
+          <button id="testSuperFanBtn" type="button">테스트 슈퍼팬 등록</button>
           <button id="resetBtn" type="button" class="ghost">화면 초기화</button>
         </div>
       </section>

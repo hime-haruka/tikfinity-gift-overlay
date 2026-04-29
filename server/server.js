@@ -2,8 +2,8 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { addGift, addLevelCard, getClient, getPublicState, markSeen, pushRecentEvent, resetClient, setPinned, updateSettings } from "./state.js";
-import { extractEventName, normalizeGift, normalizeMemberLevelChange } from "./event-normalizer.js";
+import { addGift, addLevelCard, getClient, getPublicState, markSeen, pushRecentEvent, recordSuperFan, resetClient, setPinned, updateSettings } from "./state.js";
+import { extractEventName, normalizeGift, normalizeMemberLevelChange, normalizeSuperFanEvent } from "./event-normalizer.js";
 import { getAllowedOverlays, getRegisteredClient } from "./clients.js";
 import { COLOR_PRESETS } from "./settings-defaults.js";
 
@@ -112,6 +112,12 @@ app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
 
   pushRecentEvent(client, { event: eventName || "unknown" });
 
+  const superFan = normalizeSuperFanEvent(payload);
+  let superFanRecorded = null;
+  if (superFan) {
+    superFanRecorded = recordSuperFan(client, superFan);
+  }
+
   const gift = normalizeGift(payload);
   let giftAdded = null;
   if (gift && !markSeen(client, gift.id)) {
@@ -128,6 +134,7 @@ app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
     ok: true,
     clientId,
     received: eventName,
+    superFanRecorded: Boolean(superFanRecorded),
     giftAdded: Boolean(giftAdded),
     levelAdded: Boolean(levelAdded)
   });
@@ -169,6 +176,19 @@ app.post("/api/test/:clientId/level", requireRegisteredClient, (req, res) => {
     createdAt: Date.now()
   };
   res.json({ ok: true, level: addLevelCard(client, card) });
+});
+
+app.post("/api/test/:clientId/superfan", requireRegisteredClient, (req, res) => {
+  const { client } = getClient(req.clientId);
+  const body = req.body || {};
+  const fan = recordSuperFan(client, {
+    eventName: "superfanjoin",
+    userId: body.userId || "test-user",
+    uniqueId: body.uniqueId || "test_user",
+    nickname: body.nickname || "엄청긴닉네임_테스트후원자_전광판확인용",
+    profileImage: body.profileImage || ""
+  });
+  res.json({ ok: true, superFan: fan });
 });
 
 app.listen(PORT, () => {

@@ -38,22 +38,13 @@ function colorByTier(value, tiers, fallback) {
   return tier?.color || fallback;
 }
 
-function isSuperFan(item, settings) {
-  const ids = (settings.gift.superFanIds || []).map((v) => String(v).trim().toLowerCase()).filter(Boolean);
-  if (!ids.length) return false;
-  const candidates = [item.userId, item.uniqueId, item.nickname, item.username]
-    .map((v) => String(v || "").trim().toLowerCase())
-    .filter(Boolean);
-  return candidates.some((v) => ids.includes(v));
-}
-
 function styleForItem(item, settings) {
   const gift = isGift(item);
   const base = gift ? settings.gift.colors : settings.level.colors;
   let c = base;
   if (gift) {
     c = colorByTier(item.totalCoins, settings.gift.tiers, base);
-    if (isSuperFan(item, settings)) c = settings.gift.superFanColor || c;
+    if (item.isSuperFan) c = settings.gift.superFanColor || c;
   } else {
     c = colorByTier(item.level, settings.level.tiers, base);
   }
@@ -90,6 +81,7 @@ function giftHtml(item, settings) {
     <div class="gift-info">
       <div class="gift-line">
         ${pin}
+        ${item.isSuperFan ? `<span class="superfan-badge">슈퍼팬</span>` : ""}
         ${giftName ? `<span class="gift-name">${giftName}</span>` : ""}
         <span class="gift-count">× ${count}</span>
         ${diamonds}
