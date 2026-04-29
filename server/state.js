@@ -360,7 +360,7 @@ export function addGift(client, gift) {
   const s = client.settings.gift;
   if (Number(gift.totalCoins || 0) < Number(s.minCoins || 0)) return null;
 
-  const superFan = gift.ignoreSuperFan ? null : getSuperFanInfo(client, gift);
+  const superFan = getSuperFanInfo(client, gift);
   const item = {
     ...gift,
     isSuperFan: Boolean(superFan),
@@ -466,13 +466,6 @@ export function resetClient(clientIdRaw) {
   client.recentEvents = [];
   client.settings.gift.pinnedIds = [];
   client.settings.level.pinnedIds = [];
-  scheduleSave();
-  return getPublicState(clientIdRaw);
-}
-
-export function resetTeamRanking(clientIdRaw) {
-  const { client } = getClient(clientIdRaw);
-  client.teamRanking = {};
   scheduleSave();
   return getPublicState(clientIdRaw);
 }
