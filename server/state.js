@@ -49,6 +49,7 @@ function scheduleSave() {
           settings: client.settings,
           memberLevels: client.memberLevels || {},
           superFans: client.superFans || {},
+          teamRanking: client.teamRanking || {},
           feedItems: client.feedItems || []
         };
       }
@@ -69,6 +70,8 @@ function normalizeClientShape(client) {
   client.settings.level.minLevel ??= 0;
   if (client.settings.gift.superFanIds) delete client.settings.gift.superFanIds;
   client.superFans ||= {};
+  client.teamRanking ||= {};
+  client.settings.teamRanking ||= { layout: "list", maxItems: 5, fontSize: 28 };
   client.gifts ||= [];
   client.levelCards ||= [];
   client.feedItems ||= [];
@@ -94,6 +97,7 @@ export function getClient(clientIdRaw) {
       feedItems: [],
       memberLevels: {},
       superFans: {},
+      teamRanking: {},
       recentEvents: [],
       seenEventIds: {}
     };
@@ -266,6 +270,38 @@ export function addLevelCard(client, card) {
   return item;
 }
 
+
+export function recordTeamRanking(client, info) {
+  if (!info?.userId) return null;
+  client.teamRanking ||= {};
+  const key = String(info.userId);
+  const prev = client.teamRanking[key] || {};
+  const nextLevel = Number(info.level || info.teamLevel || 0);
+  if (!Number.isFinite(nextLevel) || nextLevel <= 0) return null;
+
+  client.teamRanking[key] = {
+    userId: key,
+    uniqueId: info.uniqueId || prev.uniqueId || "",
+    nickname: info.nickname || prev.nickname || "익명",
+    profileImage: info.profileImage || prev.profileImage || "",
+    teamLevel: nextLevel,
+    lastUpdate: now(),
+    createdAt: prev.createdAt || now()
+  };
+  scheduleSave();
+  return client.teamRanking[key];
+}
+
+export function getTeamRankingList(client) {
+  const settings = client.settings?.teamRanking || {};
+  const max = Math.max(1, Math.min(100, Number(settings.maxItems || 5)));
+  return Object.values(client.teamRanking || {})
+    .filter((item) => Number(item.teamLevel || 0) > 0)
+    .sort((a, b) => Number(b.teamLevel || 0) - Number(a.teamLevel || 0) || Number(b.lastUpdate || 0) - Number(a.lastUpdate || 0))
+    .slice(0, max)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
+}
+
 export function setPinned(clientIdRaw, type, id, pinned) {
   const { client } = getClient(clientIdRaw);
   const key = type === "level" ? "level" : "gift";
@@ -296,6 +332,7 @@ export function getPublicState(clientIdRaw) {
     levelCards,
     allItems: client.feedItems,
     superFans: client.superFans || {},
+    teamRanking: getTeamRankingList(client),
     serverTime: now()
   };
 }

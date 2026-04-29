@@ -17,6 +17,7 @@
       <div class="hero-links">
         <a id="giftOverlayLink" class="open-link" target="_blank">기프트 열기</a>
         <a id="levelOverlayLink" class="open-link" target="_blank">레벨업 열기</a>
+        <a id="teamRankingOverlayLink" class="open-link" target="_blank">팀 랭킹 열기</a>
         <a id="allOverlayLink" class="open-link soft" target="_blank">통합 열기</a>
       </div>
     </header>
@@ -24,6 +25,7 @@
     <nav class="tabs" aria-label="관리 탭">
       <button class="tab active" data-tab="gift">기프트</button>
       <button class="tab" data-tab="level">레벨업</button>
+      <button class="tab" data-tab="teamRanking">팀 랭킹</button>
       <button class="tab" data-tab="colors">컬러/프리셋</button>
       <button class="tab" data-tab="pins">고정 관리</button>
       <button class="tab" data-tab="urls">URL/테스트</button>
@@ -79,6 +81,29 @@
       </section>
     </section>
 
+
+
+    <section class="tab-page" data-page="teamRanking">
+      <section class="panel">
+        <div class="panel-head"><span class="icon">🏆</span><div><h2>팀 레벨 랭킹</h2><p>퇴장한 유저도 서버에 유지되는 팀 레벨 랭킹 보드 설정입니다.</p></div></div>
+        <div class="grid four">
+          <label class="field">표시 형태
+            <select id="teamRankingLayout">
+              <option value="list">리스트형</option>
+              <option value="card">카드형</option>
+            </select>
+          </label>
+          <label class="field">표시 순위 개수<input id="teamRankingMaxItems" type="number" min="1" max="100" step="1"></label>
+          <label class="field">폰트 크기(px)<input id="teamRankingFontSize" type="number" min="12" max="96" step="1"></label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="icon">📊</span><div><h2>현재 팀 랭킹</h2><p>수신된 team level 데이터 기준으로 높은 레벨부터 표시됩니다.</p></div></div>
+        <div id="teamRankingPreview" class="pin-list"></div>
+      </section>
+    </section>
+
     <section class="tab-page" data-page="colors">
       <section class="panel">
         <div class="panel-head"><span class="icon">🌈</span><div><h2>컬러 프리셋</h2><p>전체 분위기를 빠르게 바꿀 수 있는 프리셋입니다.</p></div></div>
@@ -121,10 +146,13 @@
           <label class="field">테스트 레벨업 닉네임<input id="testLevelNickname" type="text" value="엄청긴닉네임_레벨업멤버_전광판확인용_길게흘러가야함"></label>
           <label class="field">이전 레벨<input id="testPreviousLevel" type="number" min="0" step="1" value="19"></label>
           <label class="field">현재 레벨<input id="testLevelValue" type="number" min="0" step="1" value="20"></label>
+          <label class="field">테스트 팀랭킹 닉네임<input id="testTeamRankingNickname" type="text" value="팀랭킹_테스트유저"></label>
+          <label class="field">테스트 팀 레벨<input id="testTeamRankingLevel" type="number" min="1" step="1" value="25"></label>
         </div>
         <div class="actions inline">
           <button id="testGiftBtn" type="button">테스트 기프트</button>
           <button id="testLevelBtn" type="button">테스트 레벨업</button>
+          <button id="testTeamRankingBtn" type="button">테스트 팀랭킹</button>
           <button id="testSuperFanBtn" type="button">테스트 슈퍼팬 등록+기프트</button>
           <button id="resetBtn" type="button" class="ghost">화면 초기화</button>
         </div>

@@ -270,5 +270,10 @@ export const DEFAULT_SETTINGS = {
     pinnedIds: [],
     colors: defaultPreset.level,
     tiers: defaultPreset.levelTiers
+  },
+  teamRanking: {
+    layout: "list",
+    maxItems: 5,
+    fontSize: 28
   }
 };

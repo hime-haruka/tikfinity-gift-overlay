@@ -7,7 +7,8 @@ const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 export const OVERLAY_CATALOG = {
   gift: { id: "gift", name: "기프트 보드", description: "기프트 이벤트 전용 오버레이" },
   level: { id: "level", name: "레벨업 보드", description: "멤버 레벨업 전용 오버레이" },
-  all: { id: "all", name: "통합 보드", description: "기프트와 레벨업을 한 화면에 표시" }
+  all: { id: "all", name: "통합 보드", description: "기프트와 레벨업을 한 화면에 표시" },
+  "team-ranking": { id: "team-ranking", name: "팀 레벨 랭킹", description: "퇴장해도 유지되는 팀 레벨 랭킹 보드" }
 };
 
 function safeClientId(clientId) {
@@ -23,7 +24,7 @@ function ensureClientsFile() {
       status: "active",
       memo: "처음 배포 테스트용 ID입니다. 실제 판매 전 변경/추가해서 사용하세요.",
       createdAt: new Date().toISOString().slice(0, 10),
-      entitlements: { gift: true, level: true, all: true }
+      entitlements: { gift: true, level: true, all: true, "team-ranking": true }
     }
   };
   fs.writeFileSync(CLIENTS_FILE, JSON.stringify(initial, null, 2));
@@ -32,7 +33,7 @@ function ensureClientsFile() {
 function normalizeClient(client) {
   const entitlements = client?.entitlements && typeof client.entitlements === "object"
     ? client.entitlements
-    : { gift: true, level: true, all: true };
+    : { gift: true, level: true, all: true, "team-ranking": true };
   return { ...client, entitlements };
 }
 

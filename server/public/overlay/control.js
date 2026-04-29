@@ -17,6 +17,7 @@ const COLOR_KEYS = [
 $("clientLabel").textContent = `Client ID: ${clientId}`;
 $("giftOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/gift`;
 $("levelOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/level`;
+$("teamRankingOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/team-ranking`;
 $("allOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/all`;
 
 function setStatus(msg) { status.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`; }
@@ -125,6 +126,10 @@ async function loadSettings() {
   setValue("levelFontSize", currentSettings.level.fontSize || 24);
   setValue("levelCardHeight", currentSettings.level.cardHeight || 50);
 
+  setValue("teamRankingLayout", currentSettings.teamRanking?.layout || "list");
+  setValue("teamRankingMaxItems", currentSettings.teamRanking?.maxItems || 5);
+  setValue("teamRankingFontSize", currentSettings.teamRanking?.fontSize || 28);
+
   renderColorEditors(currentSettings);
   await loadState();
   await loadUrls();
@@ -161,6 +166,11 @@ function collectSettings() {
       pinnedIds: currentSettings.level.pinnedIds || [],
       colors: getColor("levelBase"),
       tiers: levelTiers
+    },
+    teamRanking: {
+      layout: getValue("teamRankingLayout") === "card" ? "card" : "list",
+      maxItems: getNum("teamRankingMaxItems") || 5,
+      fontSize: getNum("teamRankingFontSize") || 28
     }
   };
 }
@@ -201,6 +211,7 @@ async function loadState() {
   renderPresetPalette();
   renderPinList("gift", latestState.gifts || []);
   renderPinList("level", latestState.levelCards || []);
+  renderTeamRankingPreview(latestState.teamRanking || []);
 }
 
 function renderPinList(type, items) {
@@ -224,6 +235,22 @@ function renderPinList(type, items) {
   }).join("");
 }
 
+
+function renderTeamRankingPreview(items) {
+  const el = $("teamRankingPreview");
+  if (!el) return;
+  if (!items.length) {
+    el.innerHTML = `<div class="pin-empty">아직 수신된 팀 레벨 데이터가 없습니다.</div>`;
+    return;
+  }
+  el.innerHTML = items.map((item) => `
+    <div class="pin-row">
+      <span><strong>#${escapeHtml(item.rank)} ${escapeHtml(item.nickname || "익명")} / Team Lv.${escapeHtml(item.teamLevel || 0)}</strong><span>마지막 갱신: ${escapeHtml(new Date(item.lastUpdate || Date.now()).toLocaleTimeString())}</span></span>
+      <em>${escapeHtml(item.uniqueId || item.userId || "")}</em>
+    </div>
+  `).join("");
+}
+
 async function togglePin(type, id, pinned) {
   const res = await fetch(`/api/pins/${encodeURIComponent(clientId)}`, {
     method: "POST",
@@ -236,6 +263,7 @@ async function togglePin(type, id, pinned) {
   currentSettings = latestState.settings;
   renderPinList("gift", latestState.gifts || []);
   renderPinList("level", latestState.levelCards || []);
+  renderTeamRankingPreview(latestState.teamRanking || []);
   setStatus(pinned ? "카드를 상단 고정했습니다." : "고정을 해제했습니다.");
 }
 
@@ -309,6 +337,19 @@ $("testLevelBtn").addEventListener("click", async () => {
   await loadState();
   setStatus("테스트 레벨업을 보냈습니다.");
 });
+$("testTeamRankingBtn").addEventListener("click", async () => {
+  const nickname = getValue("testTeamRankingNickname") || "팀랭킹_테스트유저";
+  const level = getNum("testTeamRankingLevel") || 25;
+  const userId = `test-team-user-${Date.now()}`;
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/team-ranking`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, uniqueId: userId, nickname, teamLevel: level })
+  });
+  await loadState();
+  setStatus("테스트 팀랭킹 데이터를 보냈습니다.");
+});
+
 $("testSuperFanBtn").addEventListener("click", async () => {
   const nickname = getValue("testGiftNickname") || "테스트 닉네임";
   await fetch(`/api/test/${encodeURIComponent(clientId)}/superfan`, {
@@ -327,7 +368,7 @@ $("testSuperFanBtn").addEventListener("click", async () => {
 $("resetBtn").addEventListener("click", async () => {
   await fetch(`/api/reset/${encodeURIComponent(clientId)}`, { method: "POST" });
   await loadState();
-  setStatus("화면 상태를 초기화했습니다. 슈퍼팬 기록과 설정은 유지됩니다.");
+  setStatus("화면 상태를 초기화했습니다. 슈퍼팬·팀랭킹 기록과 설정은 유지됩니다.");
 });
 
 loadSettings().catch((err) => setStatus(`설정 로드 실패: ${err.message}`));

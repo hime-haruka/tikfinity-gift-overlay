@@ -2,8 +2,8 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { addGift, addLevelCard, getClient, getPublicState, markSeen, pushRecentEvent, recordSuperFan, resetClient, setPinned, updateSettings } from "./state.js";
-import { extractEventName, normalizeGift, normalizeMemberLevelChange, normalizeSuperFanEvent } from "./event-normalizer.js";
+import { addGift, addLevelCard, getClient, getPublicState, markSeen, pushRecentEvent, recordSuperFan, recordTeamRanking, resetClient, setPinned, updateSettings } from "./state.js";
+import { extractEventName, getMemberLevelFromAnyEvent, normalizeGift, normalizeMemberLevelChange, normalizeSuperFanEvent } from "./event-normalizer.js";
 import { getAllowedOverlays, getRegisteredClient } from "./clients.js";
 import { COLOR_PRESETS } from "./settings-defaults.js";
 
@@ -45,7 +45,7 @@ function requireOverlayAccess(req, res, next) {
 }
 
 app.get("/", (req, res) => {
-  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>TikFinity Overlay Server</title></head><body style="font-family:sans-serif;padding:32px"><h1>TikFinity Overlay Server</h1><p>Gift: <code>/overlay/CLIENT_ID/gift</code></p><p>Level: <code>/overlay/CLIENT_ID/level</code></p><p>Settings: <code>/settings/CLIENT_ID</code></p><p>Health: <a href="/health">/health</a></p></body></html>`);
+  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>TikFinity Overlay Server</title></head><body style="font-family:sans-serif;padding:32px"><h1>TikFinity Overlay Server</h1><p>Gift: <code>/overlay/CLIENT_ID/gift</code></p><p>Level: <code>/overlay/CLIENT_ID/level</code></p><p>Team Ranking: <code>/overlay/CLIENT_ID/team-ranking</code></p><p>Settings: <code>/settings/CLIENT_ID</code></p><p>Health: <a href="/health">/health</a></p></body></html>`);
 });
 
 app.get("/health", (req, res) => res.json({ ok: true, time: Date.now() }));
@@ -68,7 +68,8 @@ app.get("/overlay/:clientId", requireRegisteredClient, (req, res) => {
 });
 
 app.get("/overlay/:clientId/:mode", requireOverlayAccess, (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "overlay", "overlay.html"));
+  const fileName = req.overlayMode === "team-ranking" ? "team-ranking.html" : "overlay.html";
+  res.sendFile(path.join(__dirname, "public", "overlay", fileName));
 });
 
 app.get("/control/:clientId", requireRegisteredClient, (req, res) => {
@@ -124,6 +125,9 @@ app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
     giftAdded = addGift(client, gift);
   }
 
+  const teamLevelInfo = getMemberLevelFromAnyEvent(payload);
+  const teamRankingUpdated = teamLevelInfo ? recordTeamRanking(client, teamLevelInfo) : null;
+
   const levelCard = normalizeMemberLevelChange(client, payload);
   let levelAdded = null;
   if (levelCard && !markSeen(client, levelCard.id)) {
@@ -136,7 +140,8 @@ app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
     received: eventName,
     superFanRecorded: Boolean(superFanRecorded),
     giftAdded: Boolean(giftAdded),
-    levelAdded: Boolean(levelAdded)
+    levelAdded: Boolean(levelAdded),
+    teamRankingUpdated: Boolean(teamRankingUpdated)
   });
 });
 
@@ -168,6 +173,20 @@ app.post("/api/test/:clientId/gift", requireRegisteredClient, (req, res) => {
     createdAt: Date.now()
   };
   res.json({ ok: true, gift: addGift(client, gift) });
+});
+
+app.post("/api/test/:clientId/team-ranking", requireRegisteredClient, (req, res) => {
+  const { client } = getClient(req.clientId);
+  const body = req.body || {};
+  const userId = body.userId || `test-team-user-${Date.now()}`;
+  const item = recordTeamRanking(client, {
+    userId,
+    uniqueId: body.uniqueId || userId,
+    nickname: body.nickname || "팀랭킹_테스트유저",
+    profileImage: body.profileImage || "",
+    level: Number(body.teamLevel || body.level || 25)
+  });
+  res.json({ ok: true, teamRanking: item });
 });
 
 app.post("/api/test/:clientId/level", requireRegisteredClient, (req, res) => {

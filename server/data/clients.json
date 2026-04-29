@@ -7,7 +7,8 @@
     "entitlements": {
       "gift": true,
       "level": true,
-      "all": true
+      "all": true,
+      "team-ranking": true
     }
   },
   "kimiruda": {
@@ -18,7 +19,8 @@
     "entitlements": {
       "gift": true,
       "level": true,
-      "all": true
+      "all": true,
+      "team-ranking": true
     }
   },
   "roro": {
@@ -29,7 +31,8 @@
     "entitlements": {
       "gift": true,
       "level": true,
-      "all": true
+      "all": true,
+      "team-ranking": true
     }
   },
   "midnight": {
@@ -40,7 +43,8 @@
     "entitlements": {
       "gift": true,
       "level": true,
-      "all": true
+      "all": true,
+      "team-ranking": true
     }
   },
   "hoddo": {
@@ -51,7 +55,8 @@
     "entitlements": {
       "gift": true,
       "level": true,
-      "all": true
+      "all": true,
+      "team-ranking": true
     }
   }
 }
