@@ -21,37 +21,37 @@
       "all": false
     }
   },
-    "roro": {
+  "roro": {
     "name": "로로",
     "status": "active",
     "memo": "로로",
-    "createdAt": "2026-04-28"
+    "createdAt": "2026-04-28",
     "entitlements": {
       "gift": true,
       "level": true,
       "all": true
     }
   },
-    "midnight": {
+  "midnight": {
     "name": "midnight 별하",
     "status": "active",
     "memo": "별하",
-    "createdAt": "2026-04-29"
+    "createdAt": "2026-04-29",
     "entitlements": {
       "gift": true,
       "level": true,
       "all": true
     }
   },
-    "hoddo": {
+  "hoddo": {
     "name": "호또",
     "status": "active",
     "memo": "호또",
-    "createdAt": "2026-04-29"
+    "createdAt": "2026-04-29",
     "entitlements": {
       "gift": true,
       "level": true,
       "all": true
     }
-  },
+  }
 }
