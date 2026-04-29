@@ -10,11 +10,10 @@ const color = (text, background, border, gradientFrom, gradientTo, useGradient =
 const tint = (base, steps) => steps.map((c, i) => ({ ...c, label: base[i]?.label, min: base[i]?.min, max: base[i]?.max }));
 
 const giftRanges = [
-  { label: "0~99", min: 0, max: 99 },
-  { label: "100~499", min: 100, max: 499 },
-  { label: "500~999", min: 500, max: 999 },
-  { label: "1,000~4,999", min: 1000, max: 4999 },
-  { label: "5,000+", min: 5000, max: null }
+  { label: "1~499", min: 1, max: 499 },
+  { label: "500~4,999", min: 500, max: 4999 },
+  { label: "5,000~9,999", min: 5000, max: 9999 },
+  { label: "10,000+", min: 10000, max: null }
 ];
 const levelRanges = [
   { label: "Lv.0~9", min: 0, max: 9 },
@@ -22,7 +21,11 @@ const levelRanges = [
   { label: "Lv.20~29", min: 20, max: 29 },
   { label: "Lv.30+", min: 30, max: null }
 ];
-const tiers = (ranges, colors) => ranges.map((r, i) => ({ ...r, color: colors[i] || colors.at(-1) }));
+const tiers = (ranges, colors) => ranges.map((r, i) => {
+  const legacyGiftIndexMap = [0, 2, 3, 4];
+  const colorIndex = ranges === giftRanges && colors.length === 5 ? legacyGiftIndexMap[i] : i;
+  return { ...r, color: colors[colorIndex] || colors.at(-1) };
+});
 
 export const COLOR_PRESETS = {
   cottonCandyDream: {

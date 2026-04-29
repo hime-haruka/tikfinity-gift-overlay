@@ -1,3 +1,25 @@
+const GIFT_TIER_RANGES = [
+  { label: "1~499", min: 1, max: 499 },
+  { label: "500~4,999", min: 500, max: 4999 },
+  { label: "5,000~9,999", min: 5000, max: 9999 },
+  { label: "10,000+", min: 10000, max: null }
+];
+
+function normalizeGiftTierRanges(settings) {
+  settings.gift ||= {};
+  const current = Array.isArray(settings.gift.tiers) ? settings.gift.tiers : [];
+  let colorSource = current;
+
+  if (current.length === 5) {
+    colorSource = [current[0], current[2], current[3], current[4]];
+  }
+
+  settings.gift.tiers = GIFT_TIER_RANGES.map((range, index) => ({
+    ...range,
+    color: colorSource[index]?.color || DEFAULT_SETTINGS.gift.tiers[index]?.color || DEFAULT_SETTINGS.gift.colors
+  }));
+}
+
 import fs from "fs";
 import path from "path";
 import { DEFAULT_SETTINGS } from "./settings-defaults.js";
@@ -64,6 +86,7 @@ loadState();
 
 function normalizeClientShape(client) {
   client.settings = deepMerge(DEFAULT_SETTINGS, client.settings || {});
+  normalizeGiftTierRanges(client.settings);
   client.settings.gift.pinnedIds ||= [];
   client.settings.level.pinnedIds ||= [];
   client.settings.level.sortMode ||= "latest";
@@ -111,6 +134,7 @@ export function getClient(clientIdRaw) {
 export function updateSettings(clientIdRaw, patch) {
   const { client } = getClient(clientIdRaw);
   client.settings = deepMerge(client.settings, patch || {});
+  normalizeGiftTierRanges(client.settings);
   client.settings.gift.pinnedIds = sanitizePinnedIds(client.settings.gift.pinnedIds, client.feedItems, "gift");
   client.settings.level.pinnedIds = sanitizePinnedIds(client.settings.level.pinnedIds, client.feedItems, "level");
   scheduleSave();
