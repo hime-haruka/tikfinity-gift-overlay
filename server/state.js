@@ -65,6 +65,8 @@ function normalizeClientShape(client) {
   client.settings = deepMerge(DEFAULT_SETTINGS, client.settings || {});
   client.settings.gift.pinnedIds ||= [];
   client.settings.level.pinnedIds ||= [];
+  client.settings.level.sortMode ||= "latest";
+  client.settings.level.minLevel = Number(client.settings.level.minLevel || 0);
   if (client.settings.gift.superFanIds) delete client.settings.gift.superFanIds;
   client.superFans ||= {};
   client.gifts ||= [];
@@ -192,13 +194,12 @@ function splitPinned(items, pinnedIds, sortMode) {
 function displayItems(client, type) {
   const isWanted = type === "gift" ? isGift : isLevel;
   const settings = client.settings[type];
-  const all = client.feedItems.filter(isWanted).filter((item) => {
-    if (type === "gift") return true;
-    return Number(item.level || 0) >= Number(settings.minLevel || 0);
-  });
+  let all = client.feedItems.filter(isWanted);
+  if (type === "level") {
+    all = all.filter((item) => Number(item.level || 0) >= Number(settings.minLevel || 0));
+  }
   const max = Math.max(1, Number(settings.maxCards || (type === "gift" ? 8 : 4)));
-  const sortMode = type === "gift" ? client.settings.gift.sortMode : (client.settings.level.sortMode || "latest");
-  const { pinned, normal } = splitPinned(all, settings.pinnedIds, sortMode);
+  const { pinned, normal } = splitPinned(all, settings.pinnedIds, type === "gift" ? client.settings.gift.sortMode : client.settings.level.sortMode);
   return [...pinned.map((item) => ({ ...item, pinned: true })), ...normal.slice(0, max).map((item) => ({ ...item, pinned: false }))];
 }
 
@@ -251,7 +252,6 @@ export function addGift(client, gift) {
 
 export function addLevelCard(client, card) {
   if (!client.settings.level.enabled) return null;
-  if (Number(card.level || 0) < Number(client.settings.level.minLevel || 0)) return null;
   const item = {
     ...card,
     feedType: "level",

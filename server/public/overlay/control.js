@@ -284,51 +284,48 @@ document.body.addEventListener("click", async (event) => {
 $("saveBtn").addEventListener("click", () => saveSettings().catch((err) => setStatus(`저장 실패: ${err.message}`)));
 $("reloadStateBtn").addEventListener("click", () => loadState().then(() => setStatus("목록을 새로고침했습니다.")).catch((err) => setStatus(`목록 로드 실패: ${err.message}`)));
 function getTestPayload() {
-  const nickname = getValue("testNickname") || "엄청긴닉네임_전광판_테스트유저_슈퍼팬확인용";
-  const isSuperFan = getChecked("testIsSuperFan");
-  const userId = `test-${nickname}-${isSuperFan ? "sf" : "normal"}`.replace(/[^a-zA-Z0-9가-힣_-]/g, "_").slice(0, 60) || "test-user";
+  const nickname = getValue("testNickname") || "엄청긴닉네임_전광판테스트_닉네임이흘러가야함";
   return {
-    userId,
-    uniqueId: userId,
+    userId: "test-user",
+    uniqueId: "test_user",
     nickname,
-    coins: getNum("testGiftCoins"),
+    coins: getNum("testGiftCoins") || 0,
     count: Math.max(1, getNum("testGiftCount") || 1),
-    level: getNum("testLevelValue"),
-    previousLevel: Math.max(0, getNum("testLevelValue") - 1),
-    isSuperFan
+    level: getNum("testLevelValue") || 0,
+    previousLevel: Math.max(0, (getNum("testLevelValue") || 0) - 1),
+    superFan: getChecked("testIsSuperFan")
   };
 }
 
-async function registerTestSuperFanIfNeeded(payload) {
-  if (!payload.isSuperFan) return;
+$("testGiftBtn").addEventListener("click", async () => {
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(getTestPayload())
+  });
+  await loadState();
+  setStatus("테스트 기프트를 보냈습니다.");
+});
+
+$("testLevelBtn").addEventListener("click", async () => {
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/level`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(getTestPayload())
+  });
+  await loadState();
+  setStatus("테스트 레벨업을 보냈습니다.");
+});
+
+$("testSuperFanBtn").addEventListener("click", async () => {
+  const payload = getTestPayload();
   await fetch(`/api/test/${encodeURIComponent(clientId)}/superfan`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
-}
-
-$("testGiftBtn").addEventListener("click", async () => {
-  const payload = getTestPayload();
-  await registerTestSuperFanIfNeeded(payload);
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   await loadState();
-  setStatus("테스트 기프트를 보냈습니다.");
-});
-$("testLevelBtn").addEventListener("click", async () => {
-  const payload = getTestPayload();
-  await registerTestSuperFanIfNeeded(payload);
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/level`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-  await loadState();
-  setStatus("테스트 레벨업을 보냈습니다.");
-});
-$("testBothBtn").addEventListener("click", async () => {
-  const payload = getTestPayload();
-  await registerTestSuperFanIfNeeded(payload);
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-  await fetch(`/api/test/${encodeURIComponent(clientId)}/level`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-  await loadState();
-  setStatus("테스트 기프트와 레벨업을 보냈습니다.");
+  setStatus("테스트 유저를 슈퍼팬으로 등록했습니다.");
 });
 $("resetBtn").addEventListener("click", async () => {
   await fetch(`/api/reset/${encodeURIComponent(clientId)}`, { method: "POST" });
