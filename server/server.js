@@ -2,9 +2,10 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { addGift, addLevelCard, getClient, getPublicState, markSeen, pushRecentEvent, resetClient, updateSettings } from "./state.js";
+import { addGift, addLevelCard, getClient, getPublicState, markSeen, pushRecentEvent, resetClient, setPinned, updateSettings } from "./state.js";
 import { extractEventName, normalizeGift, normalizeMemberLevelChange } from "./event-normalizer.js";
-import { getRegisteredClient } from "./clients.js";
+import { getAllowedOverlays, getRegisteredClient } from "./clients.js";
+import { COLOR_PRESETS } from "./settings-defaults.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,8 +27,25 @@ function requireRegisteredClient(req, res, next) {
   next();
 }
 
+function getBaseUrl(req) {
+  return `${req.protocol}://${req.get("host")}`;
+}
+
+function requireOverlayAccess(req, res, next) {
+  const mode = String(req.params.mode || "all").toLowerCase();
+  const allowed = getAllowedOverlays(req.params.clientId, getBaseUrl(req));
+  if (!allowed.ok) return res.status(allowed.status).json({ ok: false, error: allowed.reason });
+  if (!allowed.overlays.some((overlay) => overlay.id === mode)) {
+    return res.status(403).type("html").send("이 Client ID에서 사용할 수 없는 오버레이입니다.");
+  }
+  req.clientId = allowed.clientId;
+  req.clientMeta = allowed.client;
+  req.overlayMode = mode;
+  next();
+}
+
 app.get("/", (req, res) => {
-  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>TikFinity Gift Overlay</title></head><body style="font-family:sans-serif;padding:32px"><h1>TikFinity Gift Overlay Server</h1><p>Overlay: <code>/overlay/CLIENT_ID</code></p><p>Settings: <code>/settings/CLIENT_ID</code></p><p>Health: <a href="/health">/health</a></p></body></html>`);
+  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>TikFinity Overlay Server</title></head><body style="font-family:sans-serif;padding:32px"><h1>TikFinity Overlay Server</h1><p>Gift: <code>/overlay/CLIENT_ID/gift</code></p><p>Level: <code>/overlay/CLIENT_ID/level</code></p><p>Settings: <code>/settings/CLIENT_ID</code></p><p>Health: <a href="/health">/health</a></p></body></html>`);
 });
 
 app.get("/health", (req, res) => res.json({ ok: true, time: Date.now() }));
@@ -36,7 +54,20 @@ app.get("/api/client/:clientId", requireRegisteredClient, (req, res) => {
   res.json({ ok: true, clientId: req.clientId, client: req.clientMeta });
 });
 
+app.get("/api/client/:clientId/overlays", requireRegisteredClient, (req, res) => {
+  const result = getAllowedOverlays(req.clientId, getBaseUrl(req));
+  res.json({ ok: true, clientId: req.clientId, client: req.clientMeta, overlays: result.overlays });
+});
+
+app.get("/api/presets", (req, res) => {
+  res.json({ ok: true, presets: COLOR_PRESETS });
+});
+
 app.get("/overlay/:clientId", requireRegisteredClient, (req, res) => {
+  res.redirect(302, `/overlay/${encodeURIComponent(req.clientId)}/all`);
+});
+
+app.get("/overlay/:clientId/:mode", requireOverlayAccess, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "overlay", "overlay.html"));
 });
 
@@ -54,12 +85,20 @@ app.get("/api/state/:clientId", requireRegisteredClient, (req, res) => {
 
 app.get("/api/settings/:clientId", requireRegisteredClient, (req, res) => {
   const { clientId, client } = getClient(req.clientId);
-  res.json({ clientId, settings: client.settings });
+  res.json({ clientId, settings: client.settings, presets: COLOR_PRESETS });
 });
 
 app.post("/api/settings/:clientId", requireRegisteredClient, (req, res) => {
   const settings = updateSettings(req.clientId, req.body || {});
   res.json({ ok: true, settings });
+});
+
+app.post("/api/pins/:clientId", requireRegisteredClient, (req, res) => {
+  const { type, id, pinned } = req.body || {};
+  if (!["gift", "level"].includes(type) || !id) {
+    return res.status(400).json({ ok: false, error: "type(gift|level)과 id가 필요합니다." });
+  }
+  res.json({ ok: true, state: setPinned(req.clientId, type, id, Boolean(pinned)) });
 });
 
 app.post("/api/reset/:clientId", requireRegisteredClient, (req, res) => {
@@ -98,18 +137,18 @@ app.post("/api/test/:clientId/gift", requireRegisteredClient, (req, res) => {
   const { client } = getClient(req.clientId);
   const body = req.body || {};
   const gift = {
-    id: `testgift:${Date.now()}`,
+    id: `testgift:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     type: "gift",
-    userId: "test-user",
-    uniqueId: "test_user",
-    nickname: body.nickname || "테스트 후원자",
+    userId: body.userId || "test-user",
+    uniqueId: body.uniqueId || "test_user",
+    nickname: body.nickname || "엄청긴닉네임_테스트후원자_전광판확인용",
     profileImage: body.profileImage || "",
     giftId: "test-gift",
     giftName: body.giftName || "Rose",
     giftImage: body.giftImage || "",
-    coins: Number(body.coins || 1),
+    coins: Number(body.coins || 100),
     count: Number(body.count || 1),
-    totalCoins: Number(body.coins || 1) * Number(body.count || 1),
+    totalCoins: Number(body.coins || 100) * Number(body.count || 1),
     createdAt: Date.now()
   };
   res.json({ ok: true, gift: addGift(client, gift) });
@@ -119,14 +158,14 @@ app.post("/api/test/:clientId/level", requireRegisteredClient, (req, res) => {
   const { client } = getClient(req.clientId);
   const body = req.body || {};
   const card = {
-    id: `testlevel:${Date.now()}`,
+    id: `testlevel:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     type: "member_level_up",
-    userId: "test-user",
-    uniqueId: "test_user",
-    nickname: body.nickname || "테스트 멤버",
+    userId: body.userId || "test-user",
+    uniqueId: body.uniqueId || "test_user",
+    nickname: body.nickname || "엄청긴닉네임_레벨업멤버_전광판확인용",
     profileImage: body.profileImage || "",
-    previousLevel: Number(body.previousLevel || 1),
-    level: Number(body.level || 2),
+    previousLevel: Number(body.previousLevel || 9),
+    level: Number(body.level || 10),
     createdAt: Date.now()
   };
   res.json({ ok: true, level: addLevelCard(client, card) });

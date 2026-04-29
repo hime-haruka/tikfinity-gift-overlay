@@ -9,7 +9,9 @@ function deepMerge(base, patch) {
   if (!patch || typeof patch !== "object") return structuredClone(base);
   const out = Array.isArray(base) ? [...base] : { ...base };
   for (const [key, value] of Object.entries(patch)) {
-    if (value && typeof value === "object" && !Array.isArray(value)) {
+    if (Array.isArray(value)) {
+      out[key] = value;
+    } else if (value && typeof value === "object") {
       out[key] = deepMerge(base?.[key] ?? {}, value);
     } else {
       out[key] = value;
@@ -60,6 +62,9 @@ loadState();
 
 function normalizeClientShape(client) {
   client.settings = deepMerge(DEFAULT_SETTINGS, client.settings || {});
+  client.settings.gift.pinnedIds ||= [];
+  client.settings.level.pinnedIds ||= [];
+  client.settings.gift.superFanIds ||= [];
   client.gifts ||= [];
   client.levelCards ||= [];
   client.feedItems ||= [];
@@ -67,7 +72,6 @@ function normalizeClientShape(client) {
   client.recentEvents ||= [];
   client.seenEventIds ||= {};
 
-  // 이전 버전에서 gifts/levelCards만 저장되어 있던 경우를 위해 feedItems를 복원합니다.
   if (client.feedItems.length === 0 && (client.gifts.length || client.levelCards.length)) {
     client.feedItems = [
       ...client.gifts.map((item) => ({ ...item, feedType: "gift" })),
@@ -98,8 +102,15 @@ export function getClient(clientIdRaw) {
 export function updateSettings(clientIdRaw, patch) {
   const { client } = getClient(clientIdRaw);
   client.settings = deepMerge(client.settings, patch || {});
+  client.settings.gift.pinnedIds = sanitizePinnedIds(client.settings.gift.pinnedIds, client.feedItems, "gift");
+  client.settings.level.pinnedIds = sanitizePinnedIds(client.settings.level.pinnedIds, client.feedItems, "level");
   scheduleSave();
   return client.settings;
+}
+
+function sanitizePinnedIds(ids, feedItems, type) {
+  const allowed = new Set(feedItems.filter((item) => item.feedType === type).map((item) => String(item.id)));
+  return [...new Set((ids || []).map(String))].filter((id) => allowed.has(id));
 }
 
 function cleanupSeen(client) {
@@ -122,28 +133,58 @@ export function pushRecentEvent(client, item) {
   client.recentEvents = client.recentEvents.slice(0, 60);
 }
 
-function trimFeed(client) {
-  const s = client.settings.gift;
-  const max = Math.max(1, Number(s.maxCards || 8));
+function isGift(item) { return item.feedType === "gift" || item.type === "gift"; }
+function isLevel(item) { return item.feedType === "level" || item.type === "member_level_up"; }
 
-  client.feedItems = sortFeedItems(client.feedItems, s.sortMode).slice(0, max);
-  client.gifts = client.feedItems.filter((item) => item.feedType === "gift" || item.type === "gift");
-  client.levelCards = client.feedItems.filter((item) => item.feedType === "level" || item.type === "member_level_up");
-}
-
-function sortFeedItems(items, sortMode) {
+function sortItems(items, sortMode) {
   const list = [...items];
   if (sortMode === "amount") {
-    return list.sort((a, b) => {
-      const aIsGift = a.feedType === "gift" || a.type === "gift";
-      const bIsGift = b.feedType === "gift" || b.type === "gift";
-      // 금액순에서는 선물끼리는 금액 우선, 레벨업 카드는 최신순으로 자연스럽게 섞되 낮은 금액 선물보다 밀리지 않게 보조값을 줍니다.
-      const av = aIsGift ? Number(a.totalCoins || 0) : Number.MAX_SAFE_INTEGER;
-      const bv = bIsGift ? Number(b.totalCoins || 0) : Number.MAX_SAFE_INTEGER;
-      return bv - av || (b.createdAt || 0) - (a.createdAt || 0);
-    });
+    return list.sort((a, b) => Number(b.totalCoins || 0) - Number(a.totalCoins || 0) || (b.createdAt || 0) - (a.createdAt || 0));
   }
   return list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+function splitPinned(items, pinnedIds, sortMode) {
+  const pinSet = new Set((pinnedIds || []).map(String));
+  const pinned = items.filter((item) => pinSet.has(String(item.id))).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const normal = sortItems(items.filter((item) => !pinSet.has(String(item.id))), sortMode);
+  return { pinned, normal };
+}
+
+function displayItems(client, type) {
+  const isWanted = type === "gift" ? isGift : isLevel;
+  const settings = client.settings[type];
+  const all = client.feedItems.filter(isWanted);
+  const max = Math.max(1, Number(settings.maxCards || (type === "gift" ? 8 : 4)));
+  const { pinned, normal } = splitPinned(all, settings.pinnedIds, type === "gift" ? client.settings.gift.sortMode : "latest");
+  return [...pinned.map((item) => ({ ...item, pinned: true })), ...normal.slice(0, max).map((item) => ({ ...item, pinned: false }))];
+}
+
+function trimFeed(client) {
+  client.settings.gift.pinnedIds = sanitizePinnedIds(client.settings.gift.pinnedIds, client.feedItems, "gift");
+  client.settings.level.pinnedIds = sanitizePinnedIds(client.settings.level.pinnedIds, client.feedItems, "level");
+
+  const keepIds = new Set([
+    ...client.settings.gift.pinnedIds.map(String),
+    ...client.settings.level.pinnedIds.map(String)
+  ]);
+
+  const recent = [...client.feedItems]
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .slice(0, 120);
+
+  const pinned = client.feedItems.filter((item) => keepIds.has(String(item.id)));
+  const merged = [...pinned, ...recent];
+  const seen = new Set();
+  client.feedItems = merged.filter((item) => {
+    const id = String(item.id);
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+
+  client.gifts = displayItems(client, "gift");
+  client.levelCards = displayItems(client, "level");
 }
 
 export function addGift(client, gift) {
@@ -178,15 +219,35 @@ export function addLevelCard(client, card) {
   return item;
 }
 
+export function setPinned(clientIdRaw, type, id, pinned) {
+  const { client } = getClient(clientIdRaw);
+  const key = type === "level" ? "level" : "gift";
+  const ids = new Set((client.settings[key].pinnedIds || []).map(String));
+  if (pinned) ids.add(String(id));
+  else ids.delete(String(id));
+  client.settings[key].pinnedIds = [...ids];
+  trimFeed(client);
+  scheduleSave();
+  return getPublicState(clientIdRaw);
+}
+
 export function getPublicState(clientIdRaw) {
   const { clientId, client } = getClient(clientIdRaw);
   trimFeed(client);
+  const gifts = displayItems(client, "gift");
+  const levelCards = displayItems(client, "level");
+  const feedItems = [...gifts, ...levelCards].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    if (a.feedType !== b.feedType) return a.feedType === "gift" ? -1 : 1;
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
   return {
     clientId,
     settings: client.settings,
-    feedItems: client.feedItems,
-    gifts: client.feedItems.filter((item) => item.feedType === "gift" || item.type === "gift"),
-    levelCards: client.feedItems.filter((item) => item.feedType === "level" || item.type === "member_level_up"),
+    feedItems,
+    gifts,
+    levelCards,
+    allItems: client.feedItems,
     serverTime: now()
   };
 }
@@ -197,6 +258,8 @@ export function resetClient(clientIdRaw) {
   client.levelCards = [];
   client.feedItems = [];
   client.recentEvents = [];
+  client.settings.gift.pinnedIds = [];
+  client.settings.level.pinnedIds = [];
   scheduleSave();
   return getPublicState(clientIdRaw);
 }

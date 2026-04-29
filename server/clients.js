@@ -4,6 +4,12 @@ import path from "path";
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 
+export const OVERLAY_CATALOG = {
+  gift: { id: "gift", name: "기프트 보드", description: "기프트 이벤트 전용 오버레이" },
+  level: { id: "level", name: "레벨업 보드", description: "멤버 레벨업 전용 오버레이" },
+  all: { id: "all", name: "통합 보드", description: "기프트와 레벨업을 한 화면에 표시" }
+};
+
 function safeClientId(clientId) {
   return String(clientId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
 }
@@ -16,10 +22,18 @@ function ensureClientsFile() {
       name: "테스트 클라이언트",
       status: "active",
       memo: "처음 배포 테스트용 ID입니다. 실제 판매 전 변경/추가해서 사용하세요.",
-      createdAt: new Date().toISOString().slice(0, 10)
+      createdAt: new Date().toISOString().slice(0, 10),
+      entitlements: { gift: true, level: true, all: true }
     }
   };
   fs.writeFileSync(CLIENTS_FILE, JSON.stringify(initial, null, 2));
+}
+
+function normalizeClient(client) {
+  const entitlements = client?.entitlements && typeof client.entitlements === "object"
+    ? client.entitlements
+    : { gift: true, level: true, all: true };
+  return { ...client, entitlements };
 }
 
 function readClients() {
@@ -50,7 +64,21 @@ export function getRegisteredClient(clientIdRaw) {
     return { ok: false, status: 403, clientId, reason: "비활성화된 Client ID입니다." };
   }
 
-  return { ok: true, status: 200, clientId, client };
+  return { ok: true, status: 200, clientId, client: normalizeClient(client) };
+}
+
+export function getAllowedOverlays(clientIdRaw, baseUrl = "") {
+  const result = getRegisteredClient(clientIdRaw);
+  if (!result.ok) return result;
+  const entitlements = result.client.entitlements || {};
+  const overlays = Object.values(OVERLAY_CATALOG)
+    .filter((overlay) => entitlements[overlay.id] !== false)
+    .map((overlay) => ({
+      ...overlay,
+      overlayUrl: `${baseUrl}/overlay/${encodeURIComponent(result.clientId)}/${overlay.id}`,
+      settingsUrl: `${baseUrl}/settings/${encodeURIComponent(result.clientId)}`
+    }));
+  return { ok: true, status: 200, clientId: result.clientId, client: result.client, overlays };
 }
 
 export function listRegisteredClients() {
