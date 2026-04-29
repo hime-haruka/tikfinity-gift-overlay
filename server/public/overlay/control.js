@@ -284,7 +284,7 @@ document.body.addEventListener("click", async (event) => {
 $("saveBtn").addEventListener("click", () => saveSettings().catch((err) => setStatus(`저장 실패: ${err.message}`)));
 $("reloadStateBtn").addEventListener("click", () => loadState().then(() => setStatus("목록을 새로고침했습니다.")).catch((err) => setStatus(`목록 로드 실패: ${err.message}`)));
 $("testGiftBtn").addEventListener("click", async () => {
-  const nickname = getValue("testGiftNickname") || "엄청긴닉네임_테스트후원자_전광판확인용_길게흘러가야함";
+  const nickname = getValue("testGiftNickname") || "테스트 닉네임";
   const coins = getNum("testGiftCoins") || 500;
   const count = getNum("testGiftCount") || 1;
   const isSuperFan = getChecked("testGiftSuperFan");
@@ -298,7 +298,7 @@ $("testGiftBtn").addEventListener("click", async () => {
   setStatus("테스트 기프트를 보냈습니다.");
 });
 $("testLevelBtn").addEventListener("click", async () => {
-  const nickname = getValue("testLevelNickname") || "엄청긴닉네임_레벨업멤버_전광판확인용_길게흘러가야함";
+  const nickname = getValue("testLevelNickname") || "테스트 닉네임";
   const previousLevel = getNum("testPreviousLevel") || 9;
   const level = getNum("testLevelValue") || 10;
   await fetch(`/api/test/${encodeURIComponent(clientId)}/level`, {
@@ -310,7 +310,7 @@ $("testLevelBtn").addEventListener("click", async () => {
   setStatus("테스트 레벨업을 보냈습니다.");
 });
 $("testSuperFanBtn").addEventListener("click", async () => {
-  const nickname = getValue("testGiftNickname") || "엄청긴닉네임_테스트후원자_전광판확인용_길게흘러가야함";
+  const nickname = getValue("testGiftNickname") || "테스트 닉네임";
   await fetch(`/api/test/${encodeURIComponent(clientId)}/superfan`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
