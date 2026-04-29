@@ -273,6 +273,8 @@ export function recordSuperFan(client, info) {
     nickname: info.nickname || "익명",
     profileImage: info.profileImage || "",
     eventName: info.eventName || "superfan",
+    source: info.source || "manual",
+    verified: info.verified !== false,
     lastSeenAt: now(),
     createdAt: client.superFans[key]?.createdAt || now()
   };
@@ -360,7 +362,22 @@ export function addGift(client, gift) {
   const s = client.settings.gift;
   if (Number(gift.totalCoins || 0) < Number(s.minCoins || 0)) return null;
 
-  const superFan = getSuperFanInfo(client, gift);
+  let superFan = null;
+  if (!gift.ignoreSuperFan) {
+    if (gift.superFan === true) {
+      superFan = recordSuperFan(client, {
+        eventName: "giftSuperFanSignal",
+        source: "gift",
+        verified: true,
+        userId: gift.userId,
+        uniqueId: gift.uniqueId,
+        nickname: gift.nickname,
+        profileImage: gift.profileImage
+      });
+    } else {
+      superFan = getSuperFanInfo(client, gift);
+    }
+  }
   const item = {
     ...gift,
     isSuperFan: Boolean(superFan),
@@ -466,6 +483,13 @@ export function resetClient(clientIdRaw) {
   client.recentEvents = [];
   client.settings.gift.pinnedIds = [];
   client.settings.level.pinnedIds = [];
+  scheduleSave();
+  return getPublicState(clientIdRaw);
+}
+
+export function resetTeamRanking(clientIdRaw) {
+  const { client } = getClient(clientIdRaw);
+  client.teamRanking = {};
   scheduleSave();
   return getPublicState(clientIdRaw);
 }

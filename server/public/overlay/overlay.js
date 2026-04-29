@@ -173,7 +173,7 @@ function updateFeed(container, items, settings) {
     const gift = isGift(item);
     const style = styleForItem(item, settings);
     let node = container.querySelector(`[data-id="${CSS.escape(id)}"]`);
-    const premium = gift && (item.isSuperFan || Number(item.totalCoins || 0) >= 5000);
+    const premium = gift && Number(item.totalCoins || item.coins || 0) >= 5000;
     const cardClass = `${gift ? "gift-card" : "level-card"} ${style.useGradient ? "is-gradient" : ""} ${item.pinned ? "is-pinned" : ""} ${premium ? "is-premium" : ""}`;
     const sig = signatureForItem(item, settings);
 

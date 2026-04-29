@@ -29,40 +29,18 @@ function boolOrUndefined(v) {
   return undefined;
 }
 
-function hasSuperFanBadge(data = {}) {
-  const badges = Array.isArray(data.userBadges) ? data.userBadges : [];
-  const sceneTypes = Array.isArray(data.userSceneTypes) ? data.userSceneTypes : [];
-
-  // TikFinity/TikTok 이벤트에서 슈퍼팬/멤버십 정보가
-  // isSubscriber:false로 오더라도 badgeSceneType 10 또는 userSceneTypes 10으로 들어오는 경우가 있습니다.
-  if (sceneTypes.map(Number).includes(10)) return true;
-  if (badges.some((badge) => Number(badge?.badgeSceneType) === 10)) return true;
-
-  return false;
+function hasSuperFanBadge(data) {
+  const badges = Array.isArray(data?.userBadges) ? data.userBadges : [];
+  const sceneTypes = Array.isArray(data?.userSceneTypes) ? data.userSceneTypes : [];
+  return badges.some((badge) => Number(badge?.badgeSceneType) === 10) || sceneTypes.some((type) => Number(type) === 10);
 }
 
-function isSuperFanLikeData(data = {}) {
-  const flag = [
-    data.superFan,
-    data.isSuperFan,
-    data.isSubscriber,
-    data.subscriber,
-    data.isMember,
-    data.member,
-    data.user?.superFan,
-    data.user?.isSuperFan,
-    data.user?.isSubscriber,
-    data.user?.subscriber,
-    data.user?.isMember
-  ].some((value) => value === true || value === "true" || value === 1 || value === "1");
+function hasDirectSuperFanFlag(data) {
+  return data?.isSubscriber === true || data?.isMember === true || data?.isSuperFan === true || data?.subscriber === true || data?.superFan === true;
+}
 
-  if (flag) return true;
-  if (hasSuperFanBadge(data)) return true;
-
-  const teamLevel = numOrNull(data.teamMemberLevel, data.user?.teamMemberLevel, data.memberLevel, data.user?.memberLevel);
-  if (teamLevel !== null && teamLevel > 0) return true;
-
-  return false;
+function hasSuperFanSignal(data) {
+  return hasDirectSuperFanFlag(data) || hasSuperFanBadge(data);
 }
 
 export function extractEventName(payload) {
@@ -141,6 +119,7 @@ export function normalizeGift(payload) {
     coins,
     count,
     totalCoins: coins * count,
+    superFan: hasSuperFanSignal(data),
     giftType,
     repeatEnd,
     createdAt: Date.now()
@@ -172,12 +151,13 @@ export function normalizeMemberLevelChange(client, payload) {
 }
 
 export function normalizeSuperFanEvent(payload) {
-  const rawEventName = extractEventName(payload);
-  const eventName = rawEventName.replace(/[_\-\s]/g, "").toLowerCase();
+  const eventName = extractEventName(payload).replace(/[_\-\s]/g, "").toLowerCase();
   const data = extractData(payload);
   const user = data.user || data.sender || data.member || data.owner || data.envelopeInfo?.user || {};
 
-  const explicitSuperFanEvent = [
+  // 슈퍼팬 판정 기준을 엄격하게 제한합니다.
+  // teamMemberLevel은 팀 레벨 랭킹용 값이라 슈퍼팬 판정에 쓰지 않습니다.
+  const superFanEvents = new Set([
     "superfan",
     "superfanjoin",
     "superfanbox",
@@ -186,14 +166,12 @@ export function normalizeSuperFanEvent(payload) {
     "subscriber",
     "memberjoin",
     "membershipjoin"
-  ].includes(eventName);
+  ]);
+  const eventSignal = superFanEvents.has(eventName);
+  const flagSignal = hasDirectSuperFanFlag(data);
+  const badgeSignal = hasSuperFanBadge(data);
 
-  // 실제 로그에서 슈퍼팬이 like/gift 이벤트를 보낼 때도
-  // isSubscriber:false로 들어오고, userBadges.badgeSceneType:10 / userSceneTypes:10 /
-  // teamMemberLevel 값으로만 확인되는 케이스가 있어 같이 검사합니다.
-  const inferredSuperFan = isSuperFanLikeData(data) || isSuperFanLikeData(user);
-
-  if (!explicitSuperFanEvent && !inferredSuperFan) return null;
+  if (!eventSignal && !flagSignal && !badgeSignal) return null;
 
   const userId = str(
     data.userId,
@@ -211,12 +189,14 @@ export function normalizeSuperFanEvent(payload) {
 
   return {
     type: eventName === "superfanbox" ? "super_fan_box" : "super_fan",
-    eventName: explicitSuperFanEvent ? eventName : "superfan_detected_from_badge",
+    eventName: eventName || "superfanbadge",
     userId,
     uniqueId: str(data.uniqueId, data.username, user.uniqueId, user.username),
     nickname: str(data.nickname, data.displayName, user.nickname, user.displayName, data.uniqueId, data.username, "익명"),
     profileImage: str(data.profilePictureUrl, data.profileImage, data.avatar, user.profilePictureUrl, user.profileImage, user.avatar),
     content: str(data.content?.defaultPattern, data.commonBarrageContent?.defaultPattern),
+    source: eventSignal ? "event" : flagSignal ? "flag" : "badgeSceneType10",
+    verified: true,
     createdAt: Date.now()
   };
 }
