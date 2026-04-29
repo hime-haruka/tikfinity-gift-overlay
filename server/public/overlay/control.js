@@ -281,6 +281,66 @@ async function loadUrls() {
   `).join("");
 }
 
+
+function remoteValue(id) {
+  const el = $(id);
+  if (!el) return "";
+  if (el.type === "checkbox") return el.checked;
+  return String(el.value ?? "").trim();
+}
+function remoteNum(id, fallback = 0) {
+  const n = Number(remoteValue(id));
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function renderRemote(tab) {
+  const panel = $("remotePanel");
+  if (!panel) return;
+
+  if (!["gift", "level", "teamRanking"].includes(tab)) {
+    panel.hidden = true;
+    document.body.classList.remove("has-remote");
+    panel.innerHTML = "";
+    return;
+  }
+
+  panel.hidden = false;
+  document.body.classList.add("has-remote");
+
+  if (tab === "teamRanking") {
+    panel.innerHTML = `
+      <div class="remote-head"><span>🏆</span><strong>팀 랭킹 테스트</strong></div>
+      <p>팀 랭킹 오버레이에만 테스트 데이터를 보냅니다.</p>
+      <label>닉네임<input id="teamNickname" type="text" value="팀랭킹_테스트유저"></label>
+      <label>팀 레벨<input id="teamLevel" type="number" min="0" step="1" value="25"></label>
+      <button type="button" data-remote-action="teamRanking">팀 랭킹 추가</button>
+      <button type="button" class="ghost" data-remote-action="reset">화면 초기화</button>
+    `;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div class="remote-head"><span>🎛️</span><strong>테스트 리모콘</strong></div>
+    <p>기프트/레벨업 통합 오버레이 테스트용입니다.</p>
+    <label>기프트 닉네임<input id="giftNickname" type="text" value="테스트_기프트유저"></label>
+    <div class="remote-row">
+      <label>금액<input id="giftCoins" type="number" min="0" step="1" value="5000"></label>
+      <label>수량<input id="giftCount" type="number" min="1" step="1" value="1"></label>
+    </div>
+    <label class="remote-check"><input id="giftSuperFan" type="checkbox"><span>슈퍼팬으로 테스트</span></label>
+    <button type="button" data-remote-action="gift">테스트 기프트</button>
+    <button type="button" data-remote-action="superfan">슈퍼팬 등록+기프트</button>
+    <hr>
+    <label>레벨업 닉네임<input id="levelNickname" type="text" value="테스트_레벨업유저"></label>
+    <div class="remote-row">
+      <label>이전<input id="previousLevel" type="number" min="0" step="1" value="19"></label>
+      <label>현재<input id="levelValue" type="number" min="0" step="1" value="20"></label>
+    </div>
+    <button type="button" data-remote-action="level">테스트 레벨업</button>
+    <button type="button" class="ghost" data-remote-action="reset">화면 초기화</button>
+  `;
+}
+
 function switchTab(tab) {
   document.querySelectorAll(".tab").forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === tab));
   document.querySelectorAll(".tab-page").forEach((page) => page.classList.toggle("active", page.dataset.page === tab));
