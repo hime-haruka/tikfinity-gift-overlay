@@ -3,6 +3,7 @@ const clientId = pathParts[1] || "default";
 const rankingList = document.getElementById("rankingList");
 
 let previousKeys = new Set();
+let lastRenderSignature = "";
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
@@ -18,15 +19,15 @@ function initials(name) {
 }
 
 function applyRankingColors(settings) {
-  const base = settings.level?.colors || settings.gift?.colors || {};
-  const superFan = settings.gift?.superFanColor || {};
   const root = document.documentElement;
-  root.style.setProperty("--rank-text", cssValue(base.text, "#fffaff"));
-  root.style.setProperty("--rank-border", "rgba(255,255,255,.18)");
-  root.style.setProperty("--rank-bg", "rgba(0,0,0,.56)");
-  root.style.setProperty("--rank-grad-from", "rgba(0,0,0,.18)");
-  root.style.setProperty("--rank-grad-to", "rgba(0,0,0,.04)");
-  root.style.setProperty("--rank-accent", cssValue(superFan.gradientFrom || superFan.border || base.border || base.gradientTo, "#ffd36a"));
+  // 랭킹 보드는 방송 화면에서 흔들리지 않게 불투명 다크 카드로 고정합니다.
+  root.style.setProperty("--rank-text", "#fffaf0");
+  root.style.setProperty("--rank-border", "rgba(255,255,255,.10)");
+  root.style.setProperty("--rank-bg", "#141719");
+  root.style.setProperty("--rank-bg-2", "#1a1d20");
+  root.style.setProperty("--rank-accent", "#ffd84d");
+  root.style.setProperty("--rank-second", "#c8d0dc");
+  root.style.setProperty("--rank-third", "#d97a43");
 }
 
 function marqueeName(text) {
@@ -65,7 +66,7 @@ function refreshMarquees(root = document) {
 }
 
 function renderAvatar(item, rank) {
-  const crown = Number(rank) === 1 ? `<span class="crown" aria-hidden="true">♛</span>` : "";
+  const crown = Number(rank) === 1 ? `<span class="crown" aria-hidden="true">👑</span>` : "";
   if (item.profileImage) {
     return `${crown}<img class="avatar-img" src="${escapeHtml(item.profileImage)}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
       <span class="avatar-fallback" style="display:none">${escapeHtml(initials(item.nickname))}</span>`;
@@ -90,10 +91,30 @@ function render(state) {
   rankingList.className = `ranking-list ${layout}`;
 
   if (!items.length) {
-    renderEmpty();
+    if (lastRenderSignature !== "__empty__") {
+      renderEmpty();
+      lastRenderSignature = "__empty__";
+    }
     previousKeys = new Set();
     return;
   }
+
+  const signature = JSON.stringify({
+    layout,
+    fontSize,
+    items: items.map((item) => ({
+      rank: item.rank,
+      userId: item.userId,
+      nickname: item.nickname,
+      profileImage: item.profileImage,
+      teamLevel: item.teamLevel
+    }))
+  });
+  if (signature === lastRenderSignature) {
+    requestAnimationFrame(() => refreshMarquees(rankingList));
+    return;
+  }
+  lastRenderSignature = signature;
 
   const nextKeys = new Set(items.map((item) => String(item.userId || item.uniqueId || item.nickname || item.rank)));
   rankingList.innerHTML = items.map((item) => {
