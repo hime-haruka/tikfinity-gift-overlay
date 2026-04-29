@@ -29,6 +29,42 @@ function boolOrUndefined(v) {
   return undefined;
 }
 
+function hasSuperFanBadge(data = {}) {
+  const badges = Array.isArray(data.userBadges) ? data.userBadges : [];
+  const sceneTypes = Array.isArray(data.userSceneTypes) ? data.userSceneTypes : [];
+
+  // TikFinity/TikTok 이벤트에서 슈퍼팬/멤버십 정보가
+  // isSubscriber:false로 오더라도 badgeSceneType 10 또는 userSceneTypes 10으로 들어오는 경우가 있습니다.
+  if (sceneTypes.map(Number).includes(10)) return true;
+  if (badges.some((badge) => Number(badge?.badgeSceneType) === 10)) return true;
+
+  return false;
+}
+
+function isSuperFanLikeData(data = {}) {
+  const flag = [
+    data.superFan,
+    data.isSuperFan,
+    data.isSubscriber,
+    data.subscriber,
+    data.isMember,
+    data.member,
+    data.user?.superFan,
+    data.user?.isSuperFan,
+    data.user?.isSubscriber,
+    data.user?.subscriber,
+    data.user?.isMember
+  ].some((value) => value === true || value === "true" || value === 1 || value === "1");
+
+  if (flag) return true;
+  if (hasSuperFanBadge(data)) return true;
+
+  const teamLevel = numOrNull(data.teamMemberLevel, data.user?.teamMemberLevel, data.memberLevel, data.user?.memberLevel);
+  if (teamLevel !== null && teamLevel > 0) return true;
+
+  return false;
+}
+
 export function extractEventName(payload) {
   return String(payload?.event || payload?.type || payload?.data?.event || "").toLowerCase();
 }
@@ -136,11 +172,29 @@ export function normalizeMemberLevelChange(client, payload) {
 }
 
 export function normalizeSuperFanEvent(payload) {
-  const eventName = extractEventName(payload).replace(/[_\-\s]/g, "").toLowerCase();
-  if (!["superfan", "superfanjoin", "superfanbox"].includes(eventName)) return null;
-
+  const rawEventName = extractEventName(payload);
+  const eventName = rawEventName.replace(/[_\-\s]/g, "").toLowerCase();
   const data = extractData(payload);
   const user = data.user || data.sender || data.member || data.owner || data.envelopeInfo?.user || {};
+
+  const explicitSuperFanEvent = [
+    "superfan",
+    "superfanjoin",
+    "superfanbox",
+    "subscribe",
+    "subscription",
+    "subscriber",
+    "memberjoin",
+    "membershipjoin"
+  ].includes(eventName);
+
+  // 실제 로그에서 슈퍼팬이 like/gift 이벤트를 보낼 때도
+  // isSubscriber:false로 들어오고, userBadges.badgeSceneType:10 / userSceneTypes:10 /
+  // teamMemberLevel 값으로만 확인되는 케이스가 있어 같이 검사합니다.
+  const inferredSuperFan = isSuperFanLikeData(data) || isSuperFanLikeData(user);
+
+  if (!explicitSuperFanEvent && !inferredSuperFan) return null;
+
   const userId = str(
     data.userId,
     data.user_id,
@@ -157,7 +211,7 @@ export function normalizeSuperFanEvent(payload) {
 
   return {
     type: eventName === "superfanbox" ? "super_fan_box" : "super_fan",
-    eventName,
+    eventName: explicitSuperFanEvent ? eventName : "superfan_detected_from_badge",
     userId,
     uniqueId: str(data.uniqueId, data.username, user.uniqueId, user.username),
     nickname: str(data.nickname, data.displayName, user.nickname, user.displayName, data.uniqueId, data.username, "익명"),
