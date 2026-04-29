@@ -7,10 +7,10 @@ const feedStack = document.getElementById("feedStack");
 function cssVar(name, value) { document.documentElement.style.setProperty(name, value); }
 
 function applySizing(settings) {
-  cssVar("--gift-font-size", `${Number(settings.gift.fontSize || 28)}px`);
-  cssVar("--level-font-size", `${Number(settings.level.fontSize || 26)}px`);
-  cssVar("--gift-card-height", `${Number(settings.gift.cardHeight || 96)}px`);
-  cssVar("--level-card-height", `${Number(settings.level.cardHeight || 90)}px`);
+  cssVar("--gift-font-size", `${Number(settings.gift.fontSize || 24)}px`);
+  cssVar("--level-font-size", `${Number(settings.level.fontSize || 24)}px`);
+  cssVar("--gift-card-height", `${Number(settings.gift.cardHeight || 50)}px`);
+  cssVar("--level-card-height", `${Number(settings.level.cardHeight || 50)}px`);
 }
 
 function escapeHtml(v) {
@@ -24,8 +24,8 @@ function imageHtml(src, cls, fallback) {
 }
 
 function marqueeText(text, className = "") {
-  const safe = escapeHtml(text);
-  return `<span class="marquee ${className}" data-marquee-text="${escapeAttr(text)}"><span class="marquee-inner"><span class="marquee-original">${safe}</span><span class="marquee-clone" aria-hidden="true">${safe}</span></span></span>`;
+  const safe = escapeHtml(text || "익명");
+  return `<span class="marquee ${className}"><span class="marquee-track"><span class="marquee-main">${safe}</span><span class="marquee-gap">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="marquee-clone" aria-hidden="true">${safe}</span></span></span>`;
 }
 
 function isGift(item) { return item.feedType === "gift" || item.type === "gift"; }
@@ -98,32 +98,64 @@ function levelHtml(item, settings) {
 
 function refreshMarquees(root = document) {
   root.querySelectorAll(".marquee").forEach((el) => {
-    const inner = el.querySelector(".marquee-inner");
-    const original = el.querySelector(".marquee-original");
-    if (!inner || !original) return;
+    const track = el.querySelector(".marquee-track");
+    const main = el.querySelector(".marquee-main");
+    if (!track || !main) return;
 
+    const available = Math.round(el.clientWidth || 0);
+    const textWidth = Math.ceil(main.scrollWidth || 0);
+    const text = main.textContent || "";
+    const key = `${available}:${textWidth}:${text}`;
+    if (el.dataset.marqueeKey === key) return;
+    el.dataset.marqueeKey = key;
+
+    track.style.animation = "none";
+    track.style.transform = "translateX(0)";
     el.classList.remove("is-overflow");
-    inner.style.removeProperty("--marquee-distance");
-    inner.style.removeProperty("--marquee-duration");
+    void track.offsetWidth;
 
-    requestAnimationFrame(() => {
-      const available = el.getBoundingClientRect().width;
-      const content = original.scrollWidth;
-      const diff = content - available;
-      if (diff > 6) {
-        const distance = content + 34;
-        const duration = Math.max(6.5, Math.min(18, distance / 42));
-        el.classList.add("is-overflow");
-        inner.style.setProperty("--marquee-distance", `${distance}px`);
-        inner.style.setProperty("--marquee-duration", `${duration}s`);
-      }
-    });
+    if (available > 0 && textWidth > available + 2) {
+      const gapWidth = 48;
+      const distance = textWidth + gapWidth;
+      const duration = Math.max(7, Math.min(18, distance / 34));
+      el.style.setProperty("--marquee-distance", `${distance}px`);
+      el.style.setProperty("--marquee-duration", `${duration}s`);
+      el.classList.add("is-overflow");
+      track.style.animation = "";
+      track.style.transform = "";
+    } else {
+      el.style.removeProperty("--marquee-distance");
+      el.style.removeProperty("--marquee-duration");
+    }
   });
 }
+
 function selectItems(state) {
   if (overlayMode === "gift") return state.gifts || [];
   if (overlayMode === "level") return state.levelCards || [];
   return state.feedItems || [...(state.gifts || []), ...(state.levelCards || [])];
+}
+
+function signatureForItem(item, settings) {
+  if (isGift(item)) {
+    return JSON.stringify({
+      type: "gift",
+      nickname: item.nickname || item.username || "익명",
+      profileImage: settings.gift.showProfileImage ? item.profileImage || "" : "",
+      giftImage: settings.gift.showGiftImage ? item.giftImage || "" : "",
+      giftName: settings.gift.showGiftName ? item.giftName || "Gift" : "",
+      count: item.count || 1,
+      totalCoins: settings.gift.showDiamondValue ? item.totalCoins || 0 : 0,
+      isSuperFan: !!item.isSuperFan
+    });
+  }
+  return JSON.stringify({
+    type: "level",
+    nickname: item.nickname || "익명",
+    profileImage: settings.gift.showProfileImage ? item.profileImage || "" : "",
+    level: item.level || 0,
+    previousLevel: item.previousLevel || 0
+  });
 }
 
 function updateFeed(container, items, settings) {
@@ -140,15 +172,17 @@ function updateFeed(container, items, settings) {
     const id = String(item.id);
     const gift = isGift(item);
     const style = styleForItem(item, settings);
-    const premium = gift && (item.isSuperFan || Number(item.totalCoins || 0) >= 5000);
     let node = container.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    const premium = gift && (item.isSuperFan || Number(item.totalCoins || 0) >= 5000);
     const cardClass = `${gift ? "gift-card" : "level-card"} ${style.useGradient ? "is-gradient" : ""} ${item.pinned ? "is-pinned" : ""} ${premium ? "is-premium" : ""}`;
+    const sig = signatureForItem(item, settings);
 
     if (!node) {
       node = document.createElement("article");
       node.dataset.id = id;
       node.className = `card ${cardClass} enter`;
       applyCardStyle(node, style);
+      node.dataset.sig = sig;
       node.innerHTML = gift ? giftHtml(item, settings) : levelHtml(item, settings);
       container.insertBefore(node, container.children[index] || null);
       requestAnimationFrame(() => refreshMarquees(node));
@@ -156,8 +190,11 @@ function updateFeed(container, items, settings) {
     } else {
       node.className = `card ${cardClass}`;
       applyCardStyle(node, style);
-      node.innerHTML = gift ? giftHtml(item, settings) : levelHtml(item, settings);
-      requestAnimationFrame(() => refreshMarquees(node));
+      if (node.dataset.sig !== sig) {
+        node.dataset.sig = sig;
+        node.innerHTML = gift ? giftHtml(item, settings) : levelHtml(item, settings);
+        requestAnimationFrame(() => refreshMarquees(node));
+      }
       const currentIndex = [...container.children].indexOf(node);
       if (currentIndex !== index) container.insertBefore(node, container.children[index] || null);
     }
@@ -178,12 +215,5 @@ async function poll() {
     setTimeout(poll, 800);
   }
 }
-
-if ("ResizeObserver" in window) {
-  const marqueeObserver = new ResizeObserver(() => refreshMarquees(document));
-  marqueeObserver.observe(feedStack);
-}
-window.addEventListener("load", () => setTimeout(() => refreshMarquees(document), 120));
-if (document.fonts?.ready) document.fonts.ready.then(() => refreshMarquees(document));
 
 poll();

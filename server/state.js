@@ -66,7 +66,7 @@ function normalizeClientShape(client) {
   client.settings.gift.pinnedIds ||= [];
   client.settings.level.pinnedIds ||= [];
   client.settings.level.sortMode ||= "latest";
-  client.settings.level.minLevel = Number(client.settings.level.minLevel || 0);
+  client.settings.level.minLevel ??= 0;
   if (client.settings.gift.superFanIds) delete client.settings.gift.superFanIds;
   client.superFans ||= {};
   client.gifts ||= [];
@@ -199,7 +199,8 @@ function displayItems(client, type) {
     all = all.filter((item) => Number(item.level || 0) >= Number(settings.minLevel || 0));
   }
   const max = Math.max(1, Number(settings.maxCards || (type === "gift" ? 8 : 4)));
-  const { pinned, normal } = splitPinned(all, settings.pinnedIds, type === "gift" ? client.settings.gift.sortMode : client.settings.level.sortMode);
+  const sortMode = type === "gift" ? client.settings.gift.sortMode : (client.settings.level.sortMode || "latest");
+  const { pinned, normal } = splitPinned(all, settings.pinnedIds, sortMode);
   return [...pinned.map((item) => ({ ...item, pinned: true })), ...normal.slice(0, max).map((item) => ({ ...item, pinned: false }))];
 }
 

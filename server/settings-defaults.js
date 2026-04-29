@@ -7,6 +7,8 @@ const color = (text, background, border, gradientFrom, gradientTo, useGradient =
   useGradient
 });
 
+const tint = (base, steps) => steps.map((c, i) => ({ ...c, label: base[i]?.label, min: base[i]?.min, max: base[i]?.max }));
+
 const giftRanges = [
   { label: "0~99", min: 0, max: 99 },
   { label: "100~499", min: 100, max: 499 },
@@ -21,172 +23,224 @@ const levelRanges = [
   { label: "Lv.30+", min: 30, max: null }
 ];
 const tiers = (ranges, colors) => ranges.map((r, i) => ({ ...r, color: colors[i] || colors.at(-1) }));
-const c = (a) => color(...a);
-const makePreset = ({ label, gift, level, superFan, giftTiers, levelTiers }) => ({
-  label,
-  gift: c(gift),
-  level: c(level),
-  superFan: c(superFan),
-  giftTiers: tiers(giftRanges, giftTiers.map(c)),
-  levelTiers: tiers(levelRanges, levelTiers.map(c))
-});
 
 export const COLOR_PRESETS = {
-  cottonCandyDream: makePreset({
+  cottonCandyDream: {
     label: "캔디 드림",
-    gift: ["#4b3550", "#fff0f8", "#ff9ed0", "#ffe3f2", "#dce2ff"],
-    level: ["#493a67", "#f4efff", "#b7a8ff", "#eee8ff", "#ffd9eb"],
-    superFan: ["#fffdf7", "#5a2350", "#ffd36a", "#ffd36a", "#ff78c2"],
-    giftTiers: [
-      ["#5d3f5c", "#fff7fb", "#ffc3df", "#fff7fb", "#edf0ff"],
-      ["#4b3550", "#fff0f8", "#ffadd6", "#ffeaf6", "#dfe4ff"],
-      ["#ffffff", "#ff92c9", "#ff92c9", "#ff92c9", "#b4c0ff"],
-      ["#ffffff", "#ff72b8", "#ff72b8", "#ff72b8", "#9faeff"],
-      ["#fffaff", "#4a2445", "#ffd6ec", "#ffd36a", "#ff78c2"]
-    ],
-    levelTiers: [
-      ["#493a67", "#f8f4ff", "#cdc2ff", "#f8f4ff", "#ffe7f2"],
-      ["#493a67", "#f1eaff", "#b7a8ff", "#f1eaff", "#ffc3df"],
-      ["#ffffff", "#a192ff", "#a192ff", "#a192ff", "#ff92c9"],
-      ["#fffaff", "#4a2445", "#ffd6ec", "#ffd36a", "#ff78c2"]
-    ]
-  }),
-
-  merryGoRound: makePreset({
+    gift: color("#5b3b58", "#fff1fa", "#ffadd6", "#ffd7ec", "#c7ceff"),
+    level: color("#5b3b58", "#f7f1ff", "#b7a8ff", "#eadfff", "#ffc3df"),
+    superFan: color("#fffaff", "#4a2445", "#ffd6ec", "#ffd36a", "#ff78c2"),
+    giftTiers: tiers(giftRanges, [
+      color("#5b3b58", "#fff7fc", "#ffcfe6", "#fff0f8", "#e4e8ff"),
+      color("#5b3b58", "#fff1fa", "#ffadd6", "#ffd7ec", "#c7ceff"),
+      color("#ffffff", "#ffdff1", "#ff92c9", "#ff92c9", "#b4c0ff"),
+      color("#ffffff", "#ffd1eb", "#ff72b8", "#ff72b8", "#9faeff"),
+      color("#fffaff", "#4a2445", "#ffd6ec", "#ffd36a", "#ff78c2")
+    ]),
+    levelTiers: tiers(levelRanges, [
+      color("#5b3b58", "#f9f5ff", "#cdc2ff", "#f7d5ec", "#d9ddff"),
+      color("#5b3b58", "#f1eaff", "#b7a8ff", "#eadfff", "#ffc3df"),
+      color("#ffffff", "#eadfff", "#a192ff", "#a192ff", "#ff92c9"),
+      color("#fffaff", "#4a2445", "#ffd6ec", "#ffd36a", "#ff78c2")
+    ])
+  },
+  merryGoRound: {
     label: "메리 고 라운드",
-    gift: ["#65364a", "#fff1f6", "#ff8fb1", "#ffe5ef", "#ffc1d6"],
-    level: ["#65364a", "#fff3f7", "#ff9ec2", "#ffe8f0", "#ffd1df"],
-    superFan: ["#fffaff", "#6a2d45", "#ffd6e5", "#ff75a8", "#ffd6a5"],
-    giftTiers: [
-      ["#74465a", "#fff8fb", "#ffc8dc", "#fff8fb", "#ffe4ed"],
-      ["#65364a", "#fff1f6", "#ffabc8", "#ffeaf2", "#ffd1df"],
-      ["#ffffff", "#ff8fb1", "#ff8fb1", "#ff8fb1", "#ffc1d6"],
-      ["#ffffff", "#ff6f9f", "#ff6f9f", "#ff6f9f", "#ffb2cc"],
-      ["#fffaff", "#6a2d45", "#ffd6e5", "#ff75a8", "#ffd6a5"]
-    ],
-    levelTiers: [
-      ["#74465a", "#fff8fb", "#ffc8dc", "#fff8fb", "#ffe4ed"],
-      ["#65364a", "#fff1f6", "#ffabc8", "#ffeaf2", "#ffd1df"],
-      ["#ffffff", "#ff8fb1", "#ff8fb1", "#ff8fb1", "#ffc1d6"],
-      ["#fffaff", "#6a2d45", "#ffd6e5", "#ff75a8", "#ffd6a5"]
-    ]
-  }),
-
-  algorithmWitch: makePreset({
+    gift: color("#70445a", "#fff1f6", "#ff8fb1", "#ffabc8", "#ffc1d6"),
+    level: color("#70445a", "#fff3f7", "#ff9ec2", "#ffb8d0", "#ffd1df"),
+    superFan: color("#fffaff", "#6a2d45", "#ffd6e5", "#ff75a8", "#ffd6a5"),
+    giftTiers: tiers(giftRanges, [
+      color("#74465a", "#fff8fb", "#ffc8dc", "#ffe4ed", "#ffc8dc"),
+      color("#70445a", "#fff1f6", "#ffabc8", "#ffabc8", "#ffd1df"),
+      color("#ffffff", "#ffe5ef", "#ff8fb1", "#ff8fb1", "#ffc1d6"),
+      color("#ffffff", "#ffd8e7", "#ff6f9f", "#ff6f9f", "#ffb2cc"),
+      color("#fffaff", "#6a2d45", "#ffd6e5", "#ff75a8", "#ffd6a5")
+    ]),
+    levelTiers: tiers(levelRanges, [
+      color("#74465a", "#fff8fb", "#ffc8dc", "#ffe4ed", "#ffc8dc"),
+      color("#70445a", "#fff1f6", "#ffabc8", "#ffabc8", "#ffd1df"),
+      color("#ffffff", "#ffe5ef", "#ff8fb1", "#ff8fb1", "#ffc1d6"),
+      color("#fffaff", "#6a2d45", "#ffd6e5", "#ff75a8", "#ffd6a5")
+    ])
+  },
+  algorithmWitch: {
     label: "알고리즘",
-    gift: ["#4a3760", "#fff4ee", "#d8b478", "#fff0e5", "#d8ccff"],
-    level: ["#4a3760", "#f5efff", "#a995ff", "#f8e8ff", "#f0c68f"],
-    superFan: ["#fffaf0", "#2b1c3a", "#ffd879", "#ffd879", "#b8a7ff"],
-    giftTiers: [
-      ["#5c4a63", "#fff8f1", "#ead2a6", "#fff8f1", "#ece6ff"],
-      ["#4a3760", "#fff1ec", "#d8b478", "#fff1ec", "#dcd3ff"],
-      ["#ffffff", "#b8a7ff", "#b8a7ff", "#b8a7ff", "#f0c68f"],
-      ["#ffffff", "#8e73ee", "#9b7bff", "#9b7bff", "#d8b478"],
-      ["#fffaf0", "#2b1c3a", "#ffd879", "#ffd879", "#b8a7ff"]
-    ],
-    levelTiers: [
-      ["#5c4a63", "#fff8f1", "#ead2a6", "#fff8f1", "#ece6ff"],
-      ["#4a3760", "#f7efff", "#b8a7ff", "#f7efff", "#f0c68f"],
-      ["#ffffff", "#9579ff", "#9579ff", "#9579ff", "#f0c68f"],
-      ["#fffaf0", "#2b1c3a", "#ffd879", "#ffd879", "#b8a7ff"]
-    ]
-  }),
-
-  midnightFox: makePreset({
+    gift: color("#514068", "#fff6ef", "#d5b16f", "#f2d9a6", "#c8b7ff"),
+    level: color("#514068", "#f7efff", "#ad98ff", "#d8c8ff", "#f2c98b"),
+    superFan: color("#fffaf0", "#2b1c3a", "#ffd879", "#ffd879", "#b8a7ff"),
+    giftTiers: tiers(giftRanges, [
+      color("#5c4a63", "#fffaf5", "#ead2a6", "#f8e6c8", "#e2dcff"),
+      color("#514068", "#fff6ef", "#d5b16f", "#f2d9a6", "#c8b7ff"),
+      color("#ffffff", "#f3eaff", "#ad98ff", "#c7b6ff", "#efc079"),
+      color("#ffffff", "#ece0ff", "#9271ff", "#9271ff", "#d5b16f"),
+      color("#fffaf0", "#2b1c3a", "#ffd879", "#ffd879", "#b8a7ff")
+    ]),
+    levelTiers: tiers(levelRanges, [
+      color("#5c4a63", "#fffaf5", "#ead2a6", "#f8e6c8", "#e2dcff"),
+      color("#514068", "#fff6ef", "#d5b16f", "#f2d9a6", "#c8b7ff"),
+      color("#ffffff", "#f7efff", "#ad98ff", "#d8c8ff", "#f2c98b"),
+      color("#fffaf0", "#2b1c3a", "#ffd879", "#ffd879", "#b8a7ff")
+    ])
+  },
+  midnightFox: {
     label: "미드나이트",
-    gift: ["#ffffff", "#1c1438", "#a983ff", "#5130c8", "#b889ff"],
-    level: ["#ffffff", "#20173f", "#c2a8ff", "#6b46d9", "#d9b8ff"],
-    superFan: ["#fffaff", "#120a27", "#e2d6ff", "#a983ff", "#ff87e7"],
-    giftTiers: [
-      ["#ffffff", "#34255f", "#c2a8ff", "#3b2a6f", "#7a5cff"],
-      ["#ffffff", "#2a1e51", "#b394ff", "#5130c8", "#9d7bff"],
-      ["#ffffff", "#211742", "#a983ff", "#6a00ff", "#b889ff"],
-      ["#ffffff", "#1a1038", "#c65cff", "#7a2cff", "#ff7df1"],
-      ["#fffaff", "#120a27", "#e2d6ff", "#a983ff", "#ff87e7"]
-    ],
-    levelTiers: [
-      ["#ffffff", "#34255f", "#c2a8ff", "#3b2a6f", "#7a5cff"],
-      ["#ffffff", "#2a1e51", "#b394ff", "#5130c8", "#9d7bff"],
-      ["#ffffff", "#211742", "#a983ff", "#6a00ff", "#d9b8ff"],
-      ["#fffaff", "#120a27", "#e2d6ff", "#a983ff", "#ff87e7"]
-    ]
-  }),
-
-  moonTiger: makePreset({
+    gift: color("#ffffff", "#1b1438", "#b38cff", "#8f5cff", "#d8b7ff"),
+    level: color("#ffffff", "#211845", "#c4a1ff", "#9d7bff", "#ff9de4"),
+    superFan: color("#fffaff", "#120a28", "#f0d6ff", "#b38cff", "#ff9de4"),
+    giftTiers: tiers(giftRanges, [
+      color("#ffffff", "#31275b", "#cbb8ff", "#cbb8ff", "#ede2ff"),
+      color("#ffffff", "#271f4d", "#b38cff", "#b38cff", "#d8b7ff"),
+      color("#ffffff", "#211845", "#9d7bff", "#9d7bff", "#c994ff"),
+      color("#ffffff", "#1b1438", "#8f5cff", "#8f5cff", "#ff9de4"),
+      color("#fffaff", "#120a28", "#f0d6ff", "#b38cff", "#ff9de4")
+    ]),
+    levelTiers: tiers(levelRanges, [
+      color("#ffffff", "#31275b", "#cbb8ff", "#cbb8ff", "#ede2ff"),
+      color("#ffffff", "#271f4d", "#b38cff", "#b38cff", "#d8b7ff"),
+      color("#ffffff", "#211845", "#9d7bff", "#9d7bff", "#ff9de4"),
+      color("#fffaff", "#120a28", "#f0d6ff", "#b38cff", "#ff9de4")
+    ])
+  },
+  moonTiger: {
     label: "월하호랑",
-    gift: ["#8f3a46", "#f7fbff", "#c9d9ee", "#ffffff", "#dce9f8"],
-    level: ["#8f3a46", "#f6fbff", "#b8cde8", "#ffffff", "#dce9f8"],
-    superFan: ["#9a3340", "#eef7ff", "#ffd1d8", "#ffffff", "#c8ddf5"],
-    giftTiers: [
-      ["#8f3a46", "#ffffff", "#edf3fa", "#ffffff", "#edf3fa"],
-      ["#8f3a46", "#f7fbff", "#dfe8f5", "#ffffff", "#dfe8f5"],
-      ["#9a3340", "#edf7ff", "#c9d9ee", "#ffffff", "#d7e9ff"],
-      ["#9a3340", "#dfefff", "#ffd1d8", "#ffffff", "#c8ddf5"],
-      ["#9a3340", "#eef7ff", "#ffd1d8", "#ffffff", "#c8ddf5"]
-    ],
-    levelTiers: [
-      ["#8f3a46", "#ffffff", "#edf3fa", "#ffffff", "#edf3fa"],
-      ["#8f3a46", "#f7fbff", "#dfe8f5", "#ffffff", "#dfe8f5"],
-      ["#9a3340", "#edf7ff", "#ffd1d8", "#ffffff", "#d7e9ff"],
-      ["#9a3340", "#eef7ff", "#ffd1d8", "#ffffff", "#c8ddf5"]
-    ]
-  }),
-
-  monochrome: makePreset({ label: "모노크롬", gift: ["#ffffff", "#2f3440", "#cbd5e1", "#64748b", "#111827"], level: ["#ffffff", "#374151", "#d1d5db", "#6b7280", "#111827"], superFan: ["#111827", "#f8fafc", "#facc15", "#f8fafc", "#facc15"], giftTiers: [["#ffffff", "#64748b", "#cbd5e1", "#94a3b8", "#64748b"],["#ffffff", "#475569", "#cbd5e1", "#64748b", "#475569"],["#ffffff", "#334155", "#e2e8f0", "#475569", "#334155"],["#ffffff", "#1f2937", "#f8fafc", "#374151", "#111827"],["#111827", "#f8fafc", "#facc15", "#f8fafc", "#facc15"]], levelTiers: [["#ffffff", "#64748b", "#cbd5e1", "#94a3b8", "#64748b"],["#ffffff", "#475569", "#cbd5e1", "#64748b", "#475569"],["#ffffff", "#334155", "#e2e8f0", "#475569", "#334155"],["#111827", "#f8fafc", "#facc15", "#f8fafc", "#facc15"]] }),
-  gothicCrimson: makePreset({ label: "고딕 크림슨", gift: ["#fff5f7", "#35131b", "#b91c3a", "#5a1724", "#b91c3a"], level: ["#fff5f7", "#3b1725", "#d94666", "#4a1628", "#8b1d34"], superFan: ["#fffaf0", "#2b0d14", "#f6c75e", "#8b1d34", "#f6c75e"], giftTiers: [["#fff5f7", "#5b2632", "#d45a74", "#5b2632", "#8b1d34"],["#fff5f7", "#4a1b29", "#c43f5a", "#4a1b29", "#9f1f3c"],["#fff5f7", "#3b1725", "#d94666", "#3b1725", "#b91c3a"],["#fff5f7", "#2f1019", "#ff6d8f", "#2f1019", "#b91c3a"],["#fffaf0", "#2b0d14", "#f6c75e", "#8b1d34", "#f6c75e"]], levelTiers: [["#fff5f7", "#5b2632", "#d45a74", "#5b2632", "#8b1d34"],["#fff5f7", "#4a1b29", "#c43f5a", "#4a1b29", "#9f1f3c"],["#fff5f7", "#3b1725", "#d94666", "#3b1725", "#b91c3a"],["#fffaf0", "#2b0d14", "#f6c75e", "#8b1d34", "#f6c75e"]] }),
-  emeraldSignal: makePreset({ label: "에메랄드", gift: ["#15483a", "#ecfff7", "#22c98a", "#ddfff1", "#8fffe0"], level: ["#15483a", "#f0fff8", "#58d68d", "#e6fff3", "#b9ffd8"], superFan: ["#f8fff8", "#0d2f24", "#d6ff7f", "#22c98a", "#8fffe0"], giftTiers: [["#245747", "#f5fff9", "#b9ffd8", "#f5fff9", "#dfffee"],["#15483a", "#ecfff7", "#8fffe0", "#ecfff7", "#b9ffd8"],["#ffffff", "#22c98a", "#22c98a", "#22c98a", "#60f0c2"],["#ffffff", "#0e9f72", "#0e9f72", "#0e9f72", "#42e0ad"],["#f8fff8", "#0d2f24", "#d6ff7f", "#22c98a", "#8fffe0"]], levelTiers: [["#245747", "#f5fff9", "#b9ffd8", "#f5fff9", "#dfffee"],["#15483a", "#ecfff7", "#8fffe0", "#ecfff7", "#b9ffd8"],["#ffffff", "#22c98a", "#22c98a", "#22c98a", "#60f0c2"],["#f8fff8", "#0d2f24", "#d6ff7f", "#22c98a", "#8fffe0"]] }),
-  mintSoda: makePreset({ label: "민트 소다", gift: ["#1c554d", "#dcfbf3", "#73dbc6", "#eafffa", "#9ee8ff"], level: ["#1c4b5a", "#e6f6ff", "#7bbcff", "#ecfbff", "#a8b5ff"], superFan: ["#f8fffb", "#12382f", "#b5ffe6", "#b5ffe6", "#68bfff"], giftTiers: [["#315e56", "#effffb", "#a9eadc", "#effffb", "#d9fff7"],["#1c554d", "#dcfbf3", "#73dbc6", "#dcfbf3", "#9ee8ff"],["#ffffff", "#45caa9", "#45caa9", "#45caa9", "#7bbcff"],["#ffffff", "#2db997", "#2db997", "#2db997", "#55a8ff"],["#f8fffb", "#12382f", "#b5ffe6", "#b5ffe6", "#68bfff"]], levelTiers: [["#315e56", "#effffb", "#a9eadc", "#effffb", "#d9fff7"],["#1c4b5a", "#e6f6ff", "#7bbcff", "#ecfbff", "#a8b5ff"],["#ffffff", "#58d4ef", "#58d4ef", "#58d4ef", "#73dbc6"],["#f8fffb", "#12382f", "#b5ffe6", "#b5ffe6", "#68bfff"]] }),
-  honeyBeige: makePreset({ label: "허니 베이지", gift: ["#5a432b", "#fff8ea", "#e8b86d", "#fff1d4", "#ffe3a3"], level: ["#5a432b", "#fff9ef", "#f0c987", "#fff4df", "#ffdca0"], superFan: ["#fffaf0", "#4a321c", "#ffe08a", "#ffe08a", "#e8b86d"], giftTiers: [["#5a432b", "#fffdf7", "#f4dfb8", "#fffdf7", "#fff2d6"],["#5a432b", "#fff8ea", "#f0c987", "#fff8ea", "#ffe3a3"],["#5a432b", "#fff1d4", "#e8b86d", "#fff1d4", "#ffd480"],["#ffffff", "#d99a3d", "#d99a3d", "#d99a3d", "#ffc96b"],["#fffaf0", "#4a321c", "#ffe08a", "#ffe08a", "#e8b86d"]], levelTiers: [["#5a432b", "#fffdf7", "#f4dfb8", "#fffdf7", "#fff2d6"],["#5a432b", "#fff8ea", "#f0c987", "#fff8ea", "#ffe3a3"],["#5a432b", "#fff1d4", "#e8b86d", "#fff1d4", "#ffd480"],["#fffaf0", "#4a321c", "#ffe08a", "#ffe08a", "#e8b86d"]] }),
-  champagneGold: makePreset({ label: "샴페인 골드", gift: ["#5f4a21", "#fffaf0", "#f7d77a", "#fff7df", "#f0c45c"], level: ["#5f4a21", "#fffdf4", "#ffe08a", "#fff8df", "#f0c45c"], superFan: ["#fffaf0", "#3c2a10", "#fff2b8", "#fff2b8", "#d8a83f"], giftTiers: [["#5f4a21", "#fffef8", "#f8e7b4", "#fffef8", "#fff8dc"],["#5f4a21", "#fffaf0", "#ffe08a", "#fffaf0", "#f7d77a"],["#5f4a21", "#fff4d6", "#f7d77a", "#fff4d6", "#d8a83f"],["#ffffff", "#c8912f", "#c8912f", "#f0c45c", "#c8912f"],["#fffaf0", "#3c2a10", "#fff2b8", "#fff2b8", "#d8a83f"]], levelTiers: [["#5f4a21", "#fffef8", "#f8e7b4", "#fffef8", "#fff8dc"],["#5f4a21", "#fffaf0", "#ffe08a", "#fffaf0", "#f7d77a"],["#5f4a21", "#fff4d6", "#f7d77a", "#fff4d6", "#d8a83f"],["#fffaf0", "#3c2a10", "#fff2b8", "#fff2b8", "#d8a83f"]] }),
-  skyCloud: makePreset({ label: "클라우드", gift: ["#244761", "#e9f7ff", "#8ccfff", "#f2fbff", "#b8e7ff"], level: ["#2e436a", "#eef3ff", "#9fb7ff", "#f4f7ff", "#8be4ff"], superFan: ["#ffffff", "#12335a", "#9be7ff", "#9be7ff", "#7d9cff"], giftTiers: [["#31506d", "#eef9ff", "#b8e7ff", "#eef9ff", "#d9f3ff"],["#244761", "#dff3ff", "#8ccfff", "#dff3ff", "#b8e7ff"],["#ffffff", "#62bdff", "#62bdff", "#62bdff", "#93dfff"],["#ffffff", "#428dff", "#428dff", "#428dff", "#8be4ff"],["#ffffff", "#12335a", "#9be7ff", "#9be7ff", "#7d9cff"]], levelTiers: [["#31506d", "#eef3ff", "#bdd1ff", "#eef3ff", "#b8e7ff"],["#2e436a", "#dce7ff", "#9fb7ff", "#dce7ff", "#8be4ff"],["#ffffff", "#7d9cff", "#7d9cff", "#7d9cff", "#72d6ff"],["#ffffff", "#12335a", "#9be7ff", "#9be7ff", "#7d9cff"]] }),
-  indigoOrbit: makePreset({ label: "인디고 오빗", gift: ["#ffffff", "#1d2451", "#6c7cff", "#283a8f", "#6c63ff"], level: ["#ffffff", "#222658", "#8d7cff", "#29318f", "#b388ff"], superFan: ["#fffaff", "#141633", "#d9dcff", "#4f5dff", "#ff8fe5"], giftTiers: [["#34395f", "#f8f8ff", "#c6ccff", "#f8f8ff", "#dfe2ff"],["#ffffff", "#343b83", "#9fa8ff", "#343b83", "#6c63ff"],["#ffffff", "#29318f", "#6c7cff", "#29318f", "#8d7cff"],["#ffffff", "#1d2451", "#8d7cff", "#1d2451", "#4f5dff"],["#fffaff", "#141633", "#d9dcff", "#4f5dff", "#ff8fe5"]], levelTiers: [["#34395f", "#f8f8ff", "#c6ccff", "#f8f8ff", "#dfe2ff"],["#ffffff", "#343b83", "#9fa8ff", "#343b83", "#6c63ff"],["#ffffff", "#29318f", "#6c7cff", "#29318f", "#8d7cff"],["#fffaff", "#141633", "#d9dcff", "#4f5dff", "#ff8fe5"]] }),
-  purpleDream: makePreset({ label: "퍼플 드림", gift: ["#ffffff", "#5636a3", "#b79cff", "#7b61ff", "#ff9ed0"], level: ["#ffffff", "#4c3a90", "#9f8cff", "#765dff", "#72d6ff"], superFan: ["#fffaf0", "#34223d", "#ffd36a", "#ffd36a", "#ff4fd8"], giftTiers: [["#4b3b72", "#f3efff", "#c9b7ff", "#f3efff", "#ffd1e8"],["#ffffff", "#7b61ff", "#b79cff", "#7b61ff", "#ffb1dd"],["#ffffff", "#6d4eff", "#a283ff", "#6d4eff", "#ff93cf"],["#ffffff", "#5636a3", "#8f6dff", "#5636a3", "#ff74bf"],["#fffaf0", "#34223d", "#ffd36a", "#ffd36a", "#ff4fd8"]], levelTiers: [["#4b3b72", "#eee8ff", "#b79cff", "#eee8ff", "#bde8ff"],["#ffffff", "#7b61ff", "#9f8cff", "#7b61ff", "#72d6ff"],["#ffffff", "#5636a3", "#866bff", "#5636a3", "#ff93cf"],["#fffaf0", "#34223d", "#ffd36a", "#ffd36a", "#ff4fd8"]] }),
-  orangePop: makePreset({ label: "오렌지 팝", gift: ["#653116", "#fff0e2", "#ff8a3d", "#ffe1c8", "#ff9f6e"], level: ["#653116", "#fff4e8", "#ff9f4a", "#ffe7d0", "#ffb56e"], superFan: ["#fffaf0", "#4a2410", "#ffd36a", "#ff8a3d", "#ffd36a"], giftTiers: [["#653116", "#fff7ef", "#ffbc8a", "#fff7ef", "#ffd9bd"],["#653116", "#fff0e2", "#ff9f6e", "#fff0e2", "#ffbc8a"],["#ffffff", "#ff8a3d", "#ff8a3d", "#ff8a3d", "#ffb56e"],["#ffffff", "#e8631e", "#e8631e", "#e8631e", "#ff9f4a"],["#fffaf0", "#4a2410", "#ffd36a", "#ff8a3d", "#ffd36a"]], levelTiers: [["#653116", "#fff7ef", "#ffbc8a", "#fff7ef", "#ffd9bd"],["#653116", "#fff0e2", "#ff9f6e", "#fff0e2", "#ffbc8a"],["#ffffff", "#ff8a3d", "#ff8a3d", "#ff8a3d", "#ffb56e"],["#fffaf0", "#4a2410", "#ffd36a", "#ff8a3d", "#ffd36a"]] }),
-  lemonSpark: makePreset({ label: "레몬 스파크", gift: ["#5c4a0f", "#fffbe5", "#f6d84a", "#fffbe5", "#ffe37a"], level: ["#5c4a0f", "#fff9dc", "#ffd84d", "#fff9dc", "#ffeaa0"], superFan: ["#fffdf0", "#443600", "#fff28a", "#fff28a", "#ffcf33"], giftTiers: [["#5c4a0f", "#fffdf0", "#f9e99f", "#fffdf0", "#fff4bd"],["#5c4a0f", "#fffbe5", "#f6d84a", "#fffbe5", "#ffe37a"],["#5c4a0f", "#fff4bd", "#f2c90f", "#fff4bd", "#ffe37a"],["#ffffff", "#dcae00", "#dcae00", "#dcae00", "#ffcf33"],["#fffdf0", "#443600", "#fff28a", "#fff28a", "#ffcf33"]], levelTiers: [["#5c4a0f", "#fffdf0", "#f9e99f", "#fffdf0", "#fff4bd"],["#5c4a0f", "#fffbe5", "#f6d84a", "#fffbe5", "#ffe37a"],["#5c4a0f", "#fff4bd", "#f2c90f", "#fff4bd", "#ffe37a"],["#fffdf0", "#443600", "#fff28a", "#fff28a", "#ffcf33"]] }),
-  pastelMix: makePreset({ label: "파스텔 믹스", gift: ["#5a4a6d", "#fff5fb", "#ffb7dc", "#fff5fb", "#d9f3ff"], level: ["#4b5b6d", "#f6fbff", "#aee6ff", "#f6fbff", "#ffd6e8"], superFan: ["#5a4a6d", "#fff5fb", "#ffd36a", "#fff5fb", "#ffd36a"], giftTiers: [["#5a4a6d", "#fff8fb", "#ffd6e8", "#fff8fb", "#e8f7ff"],["#5a4a6d", "#fff5fb", "#ffb7dc", "#fff5fb", "#d9f3ff"],["#4b5b6d", "#e8f7ff", "#aee6ff", "#e8f7ff", "#ffd6e8"],["#ffffff", "#8f86ff", "#8f86ff", "#8f86ff", "#ff9ed0"],["#5a4a6d", "#fff5fb", "#ffd36a", "#fff5fb", "#ffd36a"]], levelTiers: [["#5a4a6d", "#fff8fb", "#ffd6e8", "#fff8fb", "#e8f7ff"],["#5a4a6d", "#fff5fb", "#ffb7dc", "#fff5fb", "#d9f3ff"],["#ffffff", "#8f86ff", "#8f86ff", "#8f86ff", "#ff9ed0"],["#5a4a6d", "#fff5fb", "#ffd36a", "#fff5fb", "#ffd36a"]] }),
-  roseGold: makePreset({ label: "로즈 골드", gift: ["#fff8f4", "#3b2228", "#f5b0a2", "#5a3540", "#d9a86c"], level: ["#fff8f4", "#3b2630", "#e7a2c1", "#5a3540", "#d9a86c"], superFan: ["#fff8f4", "#2f1d20", "#ffd36a", "#ffd36a", "#ef7d99"], giftTiers: [["#fff8f4", "#5a3540", "#f7c8bd", "#5a3540", "#e6c38b"],["#fff8f4", "#4f2d36", "#f5b0a2", "#4f2d36", "#d9a86c"],["#fff8f4", "#462832", "#ef9a9a", "#462832", "#d9a86c"],["#fff8f4", "#3b2228", "#ef7d99", "#3b2228", "#ffd36a"],["#fff8f4", "#2f1d20", "#ffd36a", "#ffd36a", "#ef7d99"]], levelTiers: [["#fff8f4", "#5a3540", "#f7c8bd", "#5a3540", "#e6c38b"],["#fff8f4", "#4f2d36", "#e7a2c1", "#4f2d36", "#d9a86c"],["#fff8f4", "#462832", "#d987b4", "#462832", "#ffd36a"],["#fff8f4", "#2f1d20", "#ffd36a", "#ffd36a", "#ef7d99"]] }),
-  royalBlue: makePreset({
+    gift: color("#7a4a4a", "#f8fbff", "#d9e6f5", "#ffffff", "#dceaff"),
+    level: color("#8a4b4b", "#f2f7ff", "#c9d9ee", "#ffffff", "#dfeaff"),
+    superFan: color("#fff7f4", "#273548", "#ffb1a7", "#ffffff", "#bcd5ff"),
+    giftTiers: tiers(giftRanges, [
+      color("#7a4a4a", "#ffffff", "#e8f1fb", "#ffffff", "#f0f6ff"),
+      color("#7a4a4a", "#f8fbff", "#d9e6f5", "#ffffff", "#dceaff"),
+      color("#8a4b4b", "#f2f7ff", "#c9d9ee", "#ffffff", "#ffd8d2"),
+      color("#ffffff", "#4a5b72", "#ffb1a7", "#6d829e", "#ffb1a7"),
+      color("#fff7f4", "#273548", "#ffb1a7", "#ffffff", "#bcd5ff")
+    ]),
+    levelTiers: tiers(levelRanges, [
+      color("#7a4a4a", "#ffffff", "#e8f1fb", "#ffffff", "#f0f6ff"),
+      color("#7a4a4a", "#f8fbff", "#d9e6f5", "#ffffff", "#dceaff"),
+      color("#8a4b4b", "#f2f7ff", "#c9d9ee", "#ffffff", "#ffd8d2"),
+      color("#fff7f4", "#273548", "#ffb1a7", "#ffffff", "#bcd5ff")
+    ])
+  },
+  monochrome: {
+    label: "모노크롬",
+    gift: color("#ffffff", "#2f3440", "#cbd5e1", "#64748b", "#111827"),
+    level: color("#ffffff", "#374151", "#d1d5db", "#6b7280", "#111827"),
+    superFan: color("#111827", "#f8fafc", "#facc15", "#f8fafc", "#facc15"),
+    giftTiers: tiers(giftRanges, [color("#ffffff", "#64748b", "#cbd5e1", "#94a3b8", "#64748b"), color("#ffffff", "#475569", "#cbd5e1", "#64748b", "#475569"), color("#ffffff", "#334155", "#e2e8f0", "#475569", "#334155"), color("#ffffff", "#1f2937", "#f8fafc", "#374151", "#111827"), color("#111827", "#f8fafc", "#facc15", "#f8fafc", "#facc15")]),
+    levelTiers: tiers(levelRanges, [color("#ffffff", "#64748b", "#cbd5e1", "#94a3b8", "#64748b"), color("#ffffff", "#475569", "#cbd5e1", "#64748b", "#475569"), color("#ffffff", "#334155", "#e2e8f0", "#475569", "#334155"), color("#111827", "#f8fafc", "#facc15", "#f8fafc", "#facc15")])
+  },
+  gothicCrimson: {
+    label: "고딕 크림슨",
+    gift: color("#fff4f5", "#3a1018", "#9f1239", "#5b0b18", "#be123c"),
+    level: color("#fff4f5", "#421320", "#e11d48", "#74111f", "#be123c"),
+    superFan: color("#fffaf0", "#2a0a10", "#ffd36a", "#7f1d1d", "#ffd36a"),
+    giftTiers: tiers(giftRanges, [color("#7a1f2d", "#fff1f2", "#fecdd3", "#fff1f2", "#fecdd3"), color("#fff4f5", "#881337", "#fb7185", "#9f1239", "#fb7185"), color("#fff4f5", "#4c0519", "#e11d48", "#4c0519", "#be123c"), color("#fff4f5", "#3a1018", "#be123c", "#5b0b18", "#be123c"), color("#fffaf0", "#2a0a10", "#ffd36a", "#7f1d1d", "#ffd36a")]),
+    levelTiers: tiers(levelRanges, [color("#7a1f2d", "#fff1f2", "#fecdd3", "#fff1f2", "#fecdd3"), color("#fff4f5", "#881337", "#fb7185", "#9f1239", "#fb7185"), color("#fff4f5", "#4c0519", "#e11d48", "#4c0519", "#be123c"), color("#fffaf0", "#2a0a10", "#ffd36a", "#7f1d1d", "#ffd36a")])
+  },
+  emeraldSignal: {
+    label: "에메랄드 시그널",
+    gift: color("#14513e", "#ecfff7", "#22c98a", "#8fffe0", "#22c98a"),
+    level: color("#14513e", "#f0fff8", "#58d68d", "#b9ffd8", "#58d68d"),
+    superFan: color("#f8fff8", "#0d2f24", "#d6ff7f", "#22c98a", "#8fffe0"),
+    giftTiers: tiers(giftRanges, [color("#245747", "#f5fff9", "#b9ffd8", "#dfffee", "#b9ffd8"), color("#14513e", "#ecfff7", "#8fffe0", "#8fffe0", "#b9ffd8"), color("#ffffff", "#0f8b68", "#58d68d", "#0f8b68", "#8fffe0"), color("#ffffff", "#0b6b52", "#22c98a", "#0b6b52", "#60f0c2"), color("#f8fff8", "#0d2f24", "#d6ff7f", "#22c98a", "#8fffe0")]),
+    levelTiers: tiers(levelRanges, [color("#245747", "#f5fff9", "#b9ffd8", "#dfffee", "#b9ffd8"), color("#14513e", "#ecfff7", "#8fffe0", "#8fffe0", "#b9ffd8"), color("#ffffff", "#0f8b68", "#58d68d", "#0f8b68", "#8fffe0"), color("#f8fff8", "#0d2f24", "#d6ff7f", "#22c98a", "#8fffe0")])
+  },
+  mintSoda: {
+    label: "민트 소다",
+    gift: color("#215a52", "#dcfbf3", "#73dbc6", "#a9eadc", "#7bbcff"),
+    level: color("#245066", "#e6f6ff", "#7bbcff", "#7bbcff", "#a8b5ff"),
+    superFan: color("#f8fffb", "#12382f", "#b5ffe6", "#b5ffe6", "#68bfff"),
+    giftTiers: tiers(giftRanges, [color("#315e56", "#effffb", "#a9eadc", "#d9fff7", "#bde8ff"), color("#215a52", "#dcfbf3", "#73dbc6", "#73dbc6", "#9ee8ff"), color("#ffffff", "#119c84", "#45caa9", "#119c84", "#7bbcff"), color("#ffffff", "#0d7e6e", "#2db997", "#0d7e6e", "#55a8ff"), color("#f8fffb", "#12382f", "#b5ffe6", "#b5ffe6", "#68bfff")]),
+    levelTiers: tiers(levelRanges, [color("#315e56", "#e6f6ff", "#a8dcff", "#d9fff7", "#bde8ff"), color("#245066", "#d8f0ff", "#7bbcff", "#7bbcff", "#a8b5ff"), color("#ffffff", "#15708b", "#58d4ef", "#15708b", "#73dbc6"), color("#f8fffb", "#12382f", "#b5ffe6", "#b5ffe6", "#68bfff")])
+  },
+  honeyBeige: {
+    label: "허니 베이지",
+    gift: color("#5a432b", "#fff8ea", "#e8b86d", "#f0c987", "#ffe3a3"),
+    level: color("#5a432b", "#fff9ef", "#f0c987", "#f0c987", "#ffdca0"),
+    superFan: color("#fffaf0", "#4a321c", "#ffe08a", "#ffe08a", "#e8b86d"),
+    giftTiers: tiers(giftRanges, [color("#5a432b", "#fffdf7", "#f4dfb8", "#fff2d6", "#f4dfb8"), color("#5a432b", "#fff8ea", "#f0c987", "#f0c987", "#ffe3a3"), color("#ffffff", "#a56f2a", "#e8b86d", "#a56f2a", "#ffd480"), color("#ffffff", "#80541f", "#d99a3d", "#80541f", "#ffc96b"), color("#fffaf0", "#4a321c", "#ffe08a", "#ffe08a", "#e8b86d")]),
+    levelTiers: tiers(levelRanges, [color("#5a432b", "#fffdf7", "#f4dfb8", "#fff2d6", "#f4dfb8"), color("#5a432b", "#fff8ea", "#f0c987", "#f0c987", "#ffe3a3"), color("#ffffff", "#a56f2a", "#e8b86d", "#a56f2a", "#ffd480"), color("#fffaf0", "#4a321c", "#ffe08a", "#ffe08a", "#e8b86d")])
+  },
+  champagneGold: {
+    label: "샴페인 골드",
+    gift: color("#5f4a21", "#fffaf0", "#f7d77a", "#fff2b8", "#d8a83f"),
+    level: color("#5f4a21", "#fffdf4", "#ffe08a", "#fff2b8", "#f0c45c"),
+    superFan: color("#fffaf0", "#3c2a10", "#fff2b8", "#fff2b8", "#d8a83f"),
+    giftTiers: tiers(giftRanges, [color("#5f4a21", "#fffef8", "#f8e7b4", "#fff8dc", "#f8e7b4"), color("#5f4a21", "#fffaf0", "#ffe08a", "#fff2b8", "#f7d77a"), color("#ffffff", "#9c711f", "#f7d77a", "#9c711f", "#d8a83f"), color("#ffffff", "#765014", "#f0c45c", "#765014", "#c8912f"), color("#fffaf0", "#3c2a10", "#fff2b8", "#fff2b8", "#d8a83f")]),
+    levelTiers: tiers(levelRanges, [color("#5f4a21", "#fffef8", "#f8e7b4", "#fff8dc", "#f8e7b4"), color("#5f4a21", "#fffaf0", "#ffe08a", "#fff2b8", "#f7d77a"), color("#ffffff", "#9c711f", "#f7d77a", "#9c711f", "#d8a83f"), color("#fffaf0", "#3c2a10", "#fff2b8", "#fff2b8", "#d8a83f")])
+  },
+  royalBlue: {
     label: "로열 블루",
-    gift: ["#ffffff", "#12345d", "#64b5ff", "#1d4ed8", "#64b5ff"],
-    level: ["#ffffff", "#17335f", "#93c5fd", "#1e40af", "#7dd3fc"],
-    superFan: ["#ffffff", "#0f2545", "#bfdbfe", "#60a5fa", "#fde68a"],
-    giftTiers: [
-      ["#244761", "#eff6ff", "#bfdbfe", "#eff6ff", "#dbeafe"],
-      ["#ffffff", "#2563eb", "#93c5fd", "#2563eb", "#60a5fa"],
-      ["#ffffff", "#1d4ed8", "#64b5ff", "#1d4ed8", "#38bdf8"],
-      ["#ffffff", "#12345d", "#93c5fd", "#12345d", "#2563eb"],
-      ["#ffffff", "#0f2545", "#bfdbfe", "#60a5fa", "#fde68a"]
-    ],
-    levelTiers: [
-      ["#244761", "#eff6ff", "#bfdbfe", "#eff6ff", "#dbeafe"],
-      ["#ffffff", "#2563eb", "#93c5fd", "#2563eb", "#60a5fa"],
-      ["#ffffff", "#12345d", "#93c5fd", "#12345d", "#2563eb"],
-      ["#ffffff", "#0f2545", "#bfdbfe", "#60a5fa", "#fde68a"]
-    ]
-  }),
-
-  berryBlack: makePreset({
+    gift: color("#ffffff", "#123a70", "#5ba7ff", "#2f80ed", "#63d8ff"),
+    level: color("#ffffff", "#163d7a", "#7aa8ff", "#4f8cff", "#8fe5ff"),
+    superFan: color("#ffffff", "#08224a", "#d4ecff", "#5ba7ff", "#ffffff"),
+    giftTiers: tiers(giftRanges, [color("#214d78", "#edf7ff", "#b9dcff", "#edf7ff", "#b9dcff"), color("#ffffff", "#1f5f9f", "#8ec5ff", "#2f80ed", "#8fe5ff"), color("#ffffff", "#164b8f", "#5ba7ff", "#2f80ed", "#63d8ff"), color("#ffffff", "#123a70", "#2f80ed", "#123a70", "#63d8ff"), color("#ffffff", "#08224a", "#d4ecff", "#5ba7ff", "#ffffff")]),
+    levelTiers: tiers(levelRanges, [color("#214d78", "#edf7ff", "#b9dcff", "#edf7ff", "#b9dcff"), color("#ffffff", "#1f5f9f", "#8ec5ff", "#2f80ed", "#8fe5ff"), color("#ffffff", "#164b8f", "#5ba7ff", "#2f80ed", "#63d8ff"), color("#ffffff", "#08224a", "#d4ecff", "#5ba7ff", "#ffffff")])
+  },
+  indigoOrbit: {
+    label: "인디고 오빗",
+    gift: color("#ffffff", "#17205a", "#6c63ff", "#3949d6", "#9d7bff"),
+    level: color("#ffffff", "#1c2666", "#7d7cff", "#4f5dff", "#b388ff"),
+    superFan: color("#fffaff", "#141633", "#d9dcff", "#4f5dff", "#ff8fe5"),
+    giftTiers: tiers(giftRanges, [color("#34395f", "#f8f8ff", "#c6ccff", "#dfe2ff", "#c6ccff"), color("#ffffff", "#25307f", "#9fa8ff", "#4f5dff", "#c4b5ff"), color("#ffffff", "#1c2666", "#6c63ff", "#3949d6", "#b388ff"), color("#ffffff", "#17205a", "#4f5dff", "#17205a", "#9d7bff"), color("#fffaff", "#141633", "#d9dcff", "#4f5dff", "#ff8fe5")]),
+    levelTiers: tiers(levelRanges, [color("#34395f", "#f8f8ff", "#c6ccff", "#dfe2ff", "#c6ccff"), color("#ffffff", "#25307f", "#9fa8ff", "#4f5dff", "#c4b5ff"), color("#ffffff", "#1c2666", "#6c63ff", "#3949d6", "#b388ff"), color("#fffaff", "#141633", "#d9dcff", "#4f5dff", "#ff8fe5")])
+  },
+  purpleDream: {
+    label: "퍼플 드림",
+    gift: color("#ffffff", "#4b2b7f", "#b79cff", "#7c5cff", "#ff9de4"),
+    level: color("#ffffff", "#3d2a74", "#9f8cff", "#866bff", "#72d6ff"),
+    superFan: color("#fffaf0", "#34223d", "#ffd36a", "#ffd36a", "#ff4fd8"),
+    giftTiers: tiers(giftRanges, [color("#5c3b75", "#f6efff", "#c9b7ff", "#e8ddff", "#ffd1e8"), color("#ffffff", "#5f3aa0", "#b79cff", "#7c5cff", "#ffb1dd"), color("#ffffff", "#4b2b7f", "#a283ff", "#7c5cff", "#ff93cf"), color("#ffffff", "#3e236a", "#8f6dff", "#3e236a", "#ff74bf"), color("#fffaf0", "#34223d", "#ffd36a", "#ffd36a", "#ff4fd8")]),
+    levelTiers: tiers(levelRanges, [color("#5c3b75", "#f6efff", "#c9b7ff", "#e8ddff", "#ffd1e8"), color("#ffffff", "#5f3aa0", "#b79cff", "#7c5cff", "#ffb1dd"), color("#ffffff", "#4b2b7f", "#a283ff", "#7c5cff", "#ff93cf"), color("#fffaf0", "#34223d", "#ffd36a", "#ffd36a", "#ff4fd8")])
+  },
+  orangePop: {
+    label: "오렌지 팝",
+    gift: color("#ffffff", "#a44914", "#ff8a3d", "#ff8a3d", "#ffd36a"),
+    level: color("#ffffff", "#9a3f18", "#ffa15d", "#ffa15d", "#ffcf70"),
+    superFan: color("#fffaf0", "#4a220e", "#ffd36a", "#ff8a3d", "#fff0a3"),
+    giftTiers: tiers(giftRanges, [color("#6a3d22", "#fff4ea", "#ffc9a6", "#fff4ea", "#ffdca3"), color("#ffffff", "#c9692b", "#ffad73", "#ff8a3d", "#ffd36a"), color("#ffffff", "#a44914", "#ff8a3d", "#ff8a3d", "#ffd36a"), color("#ffffff", "#80340f", "#ff6f20", "#80340f", "#ffc247"), color("#fffaf0", "#4a220e", "#ffd36a", "#ff8a3d", "#fff0a3")]),
+    levelTiers: tiers(levelRanges, [color("#6a3d22", "#fff4ea", "#ffc9a6", "#fff4ea", "#ffdca3"), color("#ffffff", "#c9692b", "#ffad73", "#ff8a3d", "#ffd36a"), color("#ffffff", "#a44914", "#ff8a3d", "#ff8a3d", "#ffd36a"), color("#fffaf0", "#4a220e", "#ffd36a", "#ff8a3d", "#fff0a3")])
+  },
+  lemonSpark: {
+    label: "레몬 스파크",
+    gift: color("#5a4b14", "#fff8bf", "#ffe75a", "#fff6a8", "#ffe75a"),
+    level: color("#5a4b14", "#fff9cf", "#ffe66d", "#fff6a8", "#ffd95a"),
+    superFan: color("#2e2600", "#fff4a3", "#fff176", "#fffef0", "#ffd400"),
+    giftTiers: tiers(giftRanges, [color("#5a4b14", "#fffde6", "#fff2a3", "#fffde6", "#fff2a3"), color("#5a4b14", "#fff8bf", "#ffe75a", "#fff6a8", "#ffe75a"), color("#ffffff", "#a98d00", "#ffdf2e", "#a98d00", "#fff176"), color("#ffffff", "#806a00", "#ffd400", "#806a00", "#fff176"), color("#2e2600", "#fff4a3", "#fff176", "#fffef0", "#ffd400")]),
+    levelTiers: tiers(levelRanges, [color("#5a4b14", "#fffde6", "#fff2a3", "#fffde6", "#fff2a3"), color("#5a4b14", "#fff8bf", "#ffe75a", "#fff6a8", "#ffe75a"), color("#ffffff", "#a98d00", "#ffdf2e", "#a98d00", "#fff176"), color("#2e2600", "#fff4a3", "#fff176", "#fffef0", "#ffd400")])
+  },
+  pastelMix: {
+    label: "파스텔 믹스",
+    gift: color("#5d4d68", "#fff4fb", "#ffc8e0", "#ffd7ec", "#c7f0ff"),
+    level: color("#5d4d68", "#f4f0ff", "#cbbcff", "#e6dbff", "#c8ffe2"),
+    superFan: color("#5d4d68", "#fff8e8", "#ffd36a", "#ffd36a", "#ffb7dc"),
+    giftTiers: tiers(giftRanges, [color("#5d4d68", "#fffaff", "#ffd7ec", "#fff0f8", "#e7f8ff"), color("#5d4d68", "#fff4fb", "#ffc8e0", "#ffd7ec", "#c7f0ff"), color("#5d4d68", "#f4f0ff", "#cbbcff", "#cbbcff", "#c8ffe2"), color("#ffffff", "#7d66a6", "#b79cff", "#7d66a6", "#ffb7dc"), color("#5d4d68", "#fff8e8", "#ffd36a", "#ffd36a", "#ffb7dc")]),
+    levelTiers: tiers(levelRanges, [color("#5d4d68", "#fffaff", "#ffd7ec", "#fff0f8", "#e7f8ff"), color("#5d4d68", "#fff4fb", "#ffc8e0", "#ffd7ec", "#c7f0ff"), color("#5d4d68", "#f4f0ff", "#cbbcff", "#cbbcff", "#c8ffe2"), color("#5d4d68", "#fff8e8", "#ffd36a", "#ffd36a", "#ffb7dc")])
+  },
+  roseGold: {
+    label: "로즈 골드",
+    gift: color("#fff8f4", "#3b2228", "#f5b0a2", "#f5b0a2", "#d9a86c"),
+    level: color("#fff8f4", "#3b2630", "#e7a2c1", "#e7a2c1", "#d9a86c"),
+    superFan: color("#fff8f4", "#2f1d20", "#ffd36a", "#ffd36a", "#ef7d99"),
+    giftTiers: tiers(giftRanges, [color("#fff8f4", "#5a3540", "#f7c8bd", "#f7c8bd", "#e6c38b"), color("#fff8f4", "#4f2d36", "#f5b0a2", "#f5b0a2", "#d9a86c"), color("#fff8f4", "#462832", "#ef9a9a", "#ef9a9a", "#d9a86c"), color("#fff8f4", "#3b2228", "#ef7d99", "#ef7d99", "#ffd36a"), color("#fff8f4", "#2f1d20", "#ffd36a", "#ffd36a", "#ef7d99")]),
+    levelTiers: tiers(levelRanges, [color("#fff8f4", "#5a3540", "#f7c8bd", "#f7c8bd", "#e6c38b"), color("#fff8f4", "#4f2d36", "#e7a2c1", "#e7a2c1", "#d9a86c"), color("#fff8f4", "#462832", "#d987b4", "#d987b4", "#ffd36a"), color("#fff8f4", "#2f1d20", "#ffd36a", "#ffd36a", "#ef7d99")])
+  },
+  berryBlack: {
     label: "베리 블랙",
-    gift: ["#fff4fb", "#21111d", "#cc5a9d", "#2d1227", "#8b1d5b"],
-    level: ["#fff4fb", "#271729", "#b879ff", "#351b4d", "#cc5a9d"],
-    superFan: ["#fff4fb", "#180914", "#ffd36a", "#8b1d5b", "#ffd36a"],
-    giftTiers: [
-      ["#fff4fb", "#412036", "#d889b8", "#412036", "#6d234d"],
-      ["#fff4fb", "#33192d", "#cc5a9d", "#33192d", "#8b1d5b"],
-      ["#fff4fb", "#2d1227", "#e46bb2", "#2d1227", "#a32870"],
-      ["#fff4fb", "#21111d", "#ff8ccf", "#21111d", "#8b1d5b"],
-      ["#fff4fb", "#180914", "#ffd36a", "#8b1d5b", "#ffd36a"]
-    ],
-    levelTiers: [
-      ["#fff4fb", "#412036", "#d889b8", "#412036", "#6d234d"],
-      ["#fff4fb", "#33192d", "#cc5a9d", "#33192d", "#8b1d5b"],
-      ["#fff4fb", "#2d1227", "#e46bb2", "#2d1227", "#a32870"],
-      ["#fff4fb", "#180914", "#ffd36a", "#8b1d5b", "#ffd36a"]
-    ]
-  })
-
+    gift: color("#ffffff", "#2b0f2b", "#8b1b62", "#2b0f2b", "#8b1b62"),
+    level: color("#ffffff", "#351234", "#a21caf", "#351234", "#be185d"),
+    superFan: color("#fff4fb", "#160718", "#ff8fd8", "#8b1b62", "#ff8fd8"),
+    giftTiers: tiers(giftRanges, [color("#6b315e", "#fff1fb", "#e9b5d8", "#fff1fb", "#e9b5d8"), color("#ffffff", "#5b174e", "#c05a9d", "#5b174e", "#c05a9d"), color("#ffffff", "#42113d", "#a21caf", "#42113d", "#be185d"), color("#ffffff", "#2b0f2b", "#8b1b62", "#2b0f2b", "#8b1b62"), color("#fff4fb", "#160718", "#ff8fd8", "#8b1b62", "#ff8fd8")]),
+    levelTiers: tiers(levelRanges, [color("#6b315e", "#fff1fb", "#e9b5d8", "#fff1fb", "#e9b5d8"), color("#ffffff", "#5b174e", "#c05a9d", "#5b174e", "#c05a9d"), color("#ffffff", "#42113d", "#a21caf", "#42113d", "#be185d"), color("#fff4fb", "#160718", "#ff8fd8", "#8b1b62", "#ff8fd8")])
+  },
+  skyCloud: {
+    label: "스카이 클라우드",
+    gift: color("#31506d", "#eef9ff", "#8ccfff", "#d9f3ff", "#8ccfff"),
+    level: color("#31506d", "#eef3ff", "#9fb7ff", "#dbe8ff", "#8be4ff"),
+    superFan: color("#ffffff", "#12335a", "#9be7ff", "#9be7ff", "#7d9cff"),
+    giftTiers: tiers(giftRanges, [color("#31506d", "#eef9ff", "#b8e7ff", "#d9f3ff", "#b8e7ff"), color("#31506d", "#dff3ff", "#8ccfff", "#8ccfff", "#b8e7ff"), color("#ffffff", "#2f7bbd", "#62bdff", "#2f7bbd", "#93dfff"), color("#ffffff", "#225f9f", "#428dff", "#225f9f", "#8be4ff"), color("#ffffff", "#12335a", "#9be7ff", "#9be7ff", "#7d9cff")]),
+    levelTiers: tiers(levelRanges, [color("#31506d", "#eef3ff", "#bdd1ff", "#dbe8ff", "#b8e7ff"), color("#31506d", "#dce7ff", "#9fb7ff", "#9fb7ff", "#8be4ff"), color("#ffffff", "#3558a8", "#7d9cff", "#3558a8", "#72d6ff"), color("#ffffff", "#12335a", "#9be7ff", "#9be7ff", "#7d9cff")])
+  }
 };
-
 const defaultPreset = COLOR_PRESETS.purpleDream;
 
 export const DEFAULT_SETTINGS = {
@@ -199,8 +253,8 @@ export const DEFAULT_SETTINGS = {
     sortMode: "latest",
     minCoins: 0,
     maxCards: 8,
-    fontSize: 28,
-    cardHeight: 96,
+    fontSize: 24,
+    cardHeight: 50,
     pinnedIds: [],
     colors: defaultPreset.gift,
     superFanColor: defaultPreset.superFan,
@@ -208,11 +262,11 @@ export const DEFAULT_SETTINGS = {
   },
   level: {
     enabled: true,
+    maxCards: 4,
     sortMode: "latest",
     minLevel: 0,
-    maxCards: 4,
-    fontSize: 26,
-    cardHeight: 90,
+    fontSize: 24,
+    cardHeight: 50,
     pinnedIds: [],
     colors: defaultPreset.level,
     tiers: defaultPreset.levelTiers

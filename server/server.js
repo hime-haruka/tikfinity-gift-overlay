@@ -143,33 +143,28 @@ app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
 app.post("/api/test/:clientId/gift", requireRegisteredClient, (req, res) => {
   const { client } = getClient(req.clientId);
   const body = req.body || {};
-  const userId = body.userId || "test-user";
-  const uniqueId = body.uniqueId || "test_user";
-  const nickname = body.nickname || "엄청긴닉네임_테스트후원자_전광판확인용";
-  if (body.superFan === true) {
+  if (body.superFan) {
     recordSuperFan(client, {
-      eventName: "test_superfan",
-      userId,
-      uniqueId,
-      nickname,
+      eventName: "superfantest",
+      userId: body.userId || "test-superfan-user",
+      uniqueId: body.uniqueId || body.userId || "test-superfan-user",
+      nickname: body.nickname || "엄청긴닉네임_테스트후원자_전광판확인용",
       profileImage: body.profileImage || ""
     });
   }
-  const coins = Number(body.coins ?? 100);
-  const count = Math.max(1, Number(body.count || 1));
   const gift = {
     id: `testgift:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     type: "gift",
-    userId,
-    uniqueId,
-    nickname,
+    userId: body.userId || (body.superFan ? "test-superfan-user" : "test-user"),
+    uniqueId: body.uniqueId || (body.superFan ? "test_superfan_user" : "test_user"),
+    nickname: body.nickname || "엄청긴닉네임_테스트후원자_전광판확인용",
     profileImage: body.profileImage || "",
     giftId: "test-gift",
     giftName: body.giftName || "Rose",
     giftImage: body.giftImage || "",
-    coins,
-    count,
-    totalCoins: coins * count,
+    coins: Number(body.coins || 100),
+    count: Number(body.count || 1),
+    totalCoins: Number(body.coins || 100) * Number(body.count || 1),
     createdAt: Date.now()
   };
   res.json({ ok: true, gift: addGift(client, gift) });
@@ -178,16 +173,15 @@ app.post("/api/test/:clientId/gift", requireRegisteredClient, (req, res) => {
 app.post("/api/test/:clientId/level", requireRegisteredClient, (req, res) => {
   const { client } = getClient(req.clientId);
   const body = req.body || {};
-  const level = Number(body.level ?? 10);
   const card = {
     id: `testlevel:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     type: "member_level_up",
-    userId: body.userId || "test-user",
-    uniqueId: body.uniqueId || "test_user",
+    userId: body.userId || (body.superFan ? "test-superfan-user" : "test-user"),
+    uniqueId: body.uniqueId || (body.superFan ? "test_superfan_user" : "test_user"),
     nickname: body.nickname || "엄청긴닉네임_레벨업멤버_전광판확인용",
     profileImage: body.profileImage || "",
-    previousLevel: Number(body.previousLevel ?? Math.max(0, level - 1)),
-    level,
+    previousLevel: Number(body.previousLevel || 9),
+    level: Number(body.level || 10),
     createdAt: Date.now()
   };
   res.json({ ok: true, level: addLevelCard(client, card) });
@@ -198,8 +192,8 @@ app.post("/api/test/:clientId/superfan", requireRegisteredClient, (req, res) => 
   const body = req.body || {};
   const fan = recordSuperFan(client, {
     eventName: "superfanjoin",
-    userId: body.userId || "test-user",
-    uniqueId: body.uniqueId || "test_user",
+    userId: body.userId || "test-superfan-user",
+    uniqueId: body.uniqueId || "test_superfan_user",
     nickname: body.nickname || "엄청긴닉네임_테스트후원자_전광판확인용",
     profileImage: body.profileImage || ""
   });

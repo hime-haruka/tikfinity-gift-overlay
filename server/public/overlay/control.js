@@ -8,7 +8,7 @@ let latestState = null;
 
 const COLOR_KEYS = [
   ["text", "텍스트"],
-  ["border", "보더"],
+  ["border", "테두리"],
   ["background", "배경"],
   ["gradientFrom", "그라데이션 시작"],
   ["gradientTo", "그라데이션 끝"]
@@ -115,15 +115,15 @@ async function loadSettings() {
   setValue("sortMode", currentSettings.gift.sortMode);
   setValue("minCoins", currentSettings.gift.minCoins);
   setValue("maxCards", currentSettings.gift.maxCards);
-  setValue("giftFontSize", currentSettings.gift.fontSize || 28);
-  setValue("giftCardHeight", currentSettings.gift.cardHeight || 96);
+  setValue("giftFontSize", currentSettings.gift.fontSize || 24);
+  setValue("giftCardHeight", currentSettings.gift.cardHeight || 50);
 
   setChecked("levelEnabled", currentSettings.level.enabled);
-  setValue("levelSortMode", currentSettings.level.sortMode || "latest");
-  setValue("minLevel", currentSettings.level.minLevel || 0);
   setValue("levelMaxCards", currentSettings.level.maxCards);
-  setValue("levelFontSize", currentSettings.level.fontSize || 26);
-  setValue("levelCardHeight", currentSettings.level.cardHeight || 90);
+  setValue("levelSortMode", currentSettings.level.sortMode || "latest");
+  setValue("levelMinLevel", currentSettings.level.minLevel || 0);
+  setValue("levelFontSize", currentSettings.level.fontSize || 24);
+  setValue("levelCardHeight", currentSettings.level.cardHeight || 50);
 
   renderColorEditors(currentSettings);
   await loadState();
@@ -153,9 +153,9 @@ function collectSettings() {
     },
     level: {
       enabled: getChecked("levelEnabled"),
-      sortMode: getValue("levelSortMode"),
-      minLevel: getNum("minLevel"),
       maxCards: getNum("levelMaxCards"),
+      sortMode: getValue("levelSortMode"),
+      minLevel: getNum("levelMinLevel"),
       fontSize: getNum("levelFontSize"),
       cardHeight: getNum("levelCardHeight"),
       pinnedIds: currentSettings.level.pinnedIds || [],
@@ -283,49 +283,46 @@ document.body.addEventListener("click", async (event) => {
 
 $("saveBtn").addEventListener("click", () => saveSettings().catch((err) => setStatus(`저장 실패: ${err.message}`)));
 $("reloadStateBtn").addEventListener("click", () => loadState().then(() => setStatus("목록을 새로고침했습니다.")).catch((err) => setStatus(`목록 로드 실패: ${err.message}`)));
-function getTestPayload() {
-  const nickname = getValue("testNickname") || "엄청긴닉네임_전광판테스트_닉네임이흘러가야함";
-  return {
-    userId: "test-user",
-    uniqueId: "test_user",
-    nickname,
-    coins: getNum("testGiftCoins") || 0,
-    count: Math.max(1, getNum("testGiftCount") || 1),
-    level: getNum("testLevelValue") || 0,
-    previousLevel: Math.max(0, (getNum("testLevelValue") || 0) - 1),
-    superFan: getChecked("testIsSuperFan")
-  };
-}
-
 $("testGiftBtn").addEventListener("click", async () => {
+  const nickname = getValue("testGiftNickname") || "엄청긴닉네임_테스트후원자_전광판확인용_길게흘러가야함";
+  const coins = getNum("testGiftCoins") || 500;
+  const count = getNum("testGiftCount") || 1;
+  const isSuperFan = getChecked("testGiftSuperFan");
+  const userId = isSuperFan ? "test-superfan-user" : `test-user-${Date.now()}`;
   await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(getTestPayload())
+    body: JSON.stringify({ userId, uniqueId: userId, nickname, coins, count, superFan: isSuperFan })
   });
   await loadState();
   setStatus("테스트 기프트를 보냈습니다.");
 });
-
 $("testLevelBtn").addEventListener("click", async () => {
+  const nickname = getValue("testLevelNickname") || "엄청긴닉네임_레벨업멤버_전광판확인용_길게흘러가야함";
+  const previousLevel = getNum("testPreviousLevel") || 9;
+  const level = getNum("testLevelValue") || 10;
   await fetch(`/api/test/${encodeURIComponent(clientId)}/level`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(getTestPayload())
+    body: JSON.stringify({ nickname, previousLevel, level })
   });
   await loadState();
   setStatus("테스트 레벨업을 보냈습니다.");
 });
-
 $("testSuperFanBtn").addEventListener("click", async () => {
-  const payload = getTestPayload();
+  const nickname = getValue("testGiftNickname") || "엄청긴닉네임_테스트후원자_전광판확인용_길게흘러가야함";
   await fetch(`/api/test/${encodeURIComponent(clientId)}/superfan`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ userId: "test-superfan-user", uniqueId: "test-superfan-user", nickname })
+  });
+  await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId: "test-superfan-user", uniqueId: "test-superfan-user", nickname, coins: getNum("testGiftCoins") || 1000, count: getNum("testGiftCount") || 1, superFan: true })
   });
   await loadState();
-  setStatus("테스트 유저를 슈퍼팬으로 등록했습니다.");
+  setStatus("테스트 유저를 슈퍼팬으로 등록하고 기프트를 보냈습니다.");
 });
 $("resetBtn").addEventListener("click", async () => {
   await fetch(`/api/reset/${encodeURIComponent(clientId)}`, { method: "POST" });
