@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { addGift, addLevelCard, getClient, getPublicState, markSeen, pushRecentEvent, recordSuperFan, recordTeamRanking, resetClient, setPinned, updateSettings } from "./state.js";
+import { addGift, addLevelCard, getClient, getPublicState, hydrateStateFromSupabase, markSeen, pushRecentEvent, recordSuperFan, recordTeamRanking, resetClient, setPinned, updateSettings } from "./state.js";
 import { extractEventName, getMemberLevelFromAnyEvent, normalizeGift, normalizeMemberLevelChange, normalizeSuperFanEvent } from "./event-normalizer.js";
 import { getAllowedOverlays, getRegisteredClient } from "./clients.js";
 import { COLOR_PRESETS } from "./settings-defaults.js";
@@ -218,6 +218,8 @@ app.post("/api/test/:clientId/superfan", requireRegisteredClient, (req, res) => 
   });
   res.json({ ok: true, superFan: fan });
 });
+
+await hydrateStateFromSupabase();
 
 app.listen(PORT, () => {
   console.log(`[server] running on port ${PORT}`);

@@ -23,6 +23,7 @@ function normalizeGiftTierRanges(settings) {
 import fs from "fs";
 import path from "path";
 import { DEFAULT_SETTINGS } from "./settings-defaults.js";
+import { fetchAllClientStates, isSupabaseEnabled, upsertAllClientStates } from "./supabase.js";
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "state.json");
@@ -60,29 +61,125 @@ function loadState() {
 }
 
 let saveTimer = null;
+let remoteSaveInFlight = false;
+let remoteSaveQueued = false;
+
+function createClientSnapshot(client) {
+  return {
+    settings: client.settings,
+    state: {
+      memberLevels: client.memberLevels || {},
+      superFans: client.superFans || {},
+      teamRanking: client.teamRanking || {},
+      feedItems: client.feedItems || []
+    }
+  };
+}
+
+function createAllSnapshots() {
+  const snapshots = {};
+  for (const [clientId, client] of Object.entries(state.clients)) {
+    normalizeClientShape(client);
+    snapshots[clientId] = createClientSnapshot(client);
+  }
+  return snapshots;
+}
+
+function writeLocalStateFile(snapshots) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const compact = { clients: {} };
+  for (const [clientId, snapshot] of Object.entries(snapshots)) {
+    compact.clients[clientId] = {
+      settings: snapshot.settings,
+      memberLevels: snapshot.state.memberLevels || {},
+      superFans: snapshot.state.superFans || {},
+      teamRanking: snapshot.state.teamRanking || {},
+      feedItems: snapshot.state.feedItems || []
+    };
+  }
+  fs.writeFileSync(DATA_FILE, JSON.stringify(compact, null, 2));
+}
+
+async function saveRemoteState(snapshots) {
+  if (!isSupabaseEnabled()) return;
+  if (remoteSaveInFlight) {
+    remoteSaveQueued = true;
+    return;
+  }
+  remoteSaveInFlight = true;
+  try {
+    await upsertAllClientStates(snapshots);
+  } catch (err) {
+    console.error('[state] failed to save Supabase state', err);
+  } finally {
+    remoteSaveInFlight = false;
+    if (remoteSaveQueued) {
+      remoteSaveQueued = false;
+      setTimeout(() => saveRemoteState(createAllSnapshots()), 300);
+    }
+  }
+}
+
 function scheduleSave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-      const compact = { clients: {} };
-      for (const [clientId, client] of Object.entries(state.clients)) {
-        compact.clients[clientId] = {
-          settings: client.settings,
-          memberLevels: client.memberLevels || {},
-          superFans: client.superFans || {},
-          teamRanking: client.teamRanking || {},
-          feedItems: client.feedItems || []
-        };
-      }
-      fs.writeFileSync(DATA_FILE, JSON.stringify(compact, null, 2));
+      const snapshots = createAllSnapshots();
+      writeLocalStateFile(snapshots);
+      saveRemoteState(snapshots);
     } catch (err) {
-      console.error("[state] failed to save state file", err);
+      console.error('[state] failed to save state', err);
     }
-  }, 300);
+  }, 500);
 }
 
 loadState();
+
+function applyPersistedClient(client, persisted) {
+  if (!persisted || typeof persisted !== 'object') return;
+  if (persisted.settings && typeof persisted.settings === 'object') {
+    client.settings = persisted.settings;
+  }
+  const persistedState = persisted.state && typeof persisted.state === 'object' ? persisted.state : persisted;
+  client.memberLevels = persistedState.memberLevels || client.memberLevels || {};
+  client.superFans = persistedState.superFans || client.superFans || {};
+  client.teamRanking = persistedState.teamRanking || client.teamRanking || {};
+  client.feedItems = Array.isArray(persistedState.feedItems) ? persistedState.feedItems : (client.feedItems || []);
+  client.gifts = Array.isArray(persistedState.gifts) ? persistedState.gifts : (client.gifts || []);
+  client.levelCards = Array.isArray(persistedState.levelCards) ? persistedState.levelCards : (client.levelCards || []);
+}
+
+export async function hydrateStateFromSupabase() {
+  if (!isSupabaseEnabled()) {
+    console.log('[state] Supabase env not set. Using local memory/file state only.');
+    return { ok: false, enabled: false };
+  }
+  try {
+    const rows = await fetchAllClientStates();
+    for (const row of rows) {
+      const clientId = safeClientId(row.client_id);
+      if (!clientId) continue;
+      state.clients[clientId] ||= {
+        settings: structuredClone(DEFAULT_SETTINGS),
+        gifts: [],
+        levelCards: [],
+        feedItems: [],
+        memberLevels: {},
+        superFans: {},
+        teamRanking: {},
+        recentEvents: [],
+        seenEventIds: {}
+      };
+      applyPersistedClient(state.clients[clientId], { settings: row.settings, state: row.state });
+      normalizeClientShape(state.clients[clientId]);
+    }
+    console.log(`[state] Supabase hydrated ${rows.length} client state row(s).`);
+    return { ok: true, enabled: true, count: rows.length };
+  } catch (err) {
+    console.error('[state] failed to hydrate Supabase state', err);
+    return { ok: false, enabled: true, error: err.message };
+  }
+}
 
 function normalizeClientShape(client) {
   client.settings = deepMerge(DEFAULT_SETTINGS, client.settings || {});
