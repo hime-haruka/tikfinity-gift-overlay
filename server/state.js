@@ -69,7 +69,6 @@ function createClientSnapshot(client) {
     settings: client.settings,
     state: {
       memberLevels: client.memberLevels || {},
-      superFans: client.superFans || {},
       teamRanking: client.teamRanking || {},
       feedItems: client.feedItems || []
     }
@@ -92,7 +91,6 @@ function writeLocalStateFile(snapshots) {
     compact.clients[clientId] = {
       settings: snapshot.settings,
       memberLevels: snapshot.state.memberLevels || {},
-      superFans: snapshot.state.superFans || {},
       teamRanking: snapshot.state.teamRanking || {},
       feedItems: snapshot.state.feedItems || []
     };
@@ -142,7 +140,6 @@ function applyPersistedClient(client, persisted) {
   }
   const persistedState = persisted.state && typeof persisted.state === 'object' ? persisted.state : persisted;
   client.memberLevels = persistedState.memberLevels || client.memberLevels || {};
-  client.superFans = persistedState.superFans || client.superFans || {};
   client.teamRanking = persistedState.teamRanking || client.teamRanking || {};
   client.feedItems = Array.isArray(persistedState.feedItems) ? persistedState.feedItems : (client.feedItems || []);
   client.gifts = Array.isArray(persistedState.gifts) ? persistedState.gifts : (client.gifts || []);
@@ -165,7 +162,6 @@ export async function hydrateStateFromSupabase() {
         levelCards: [],
         feedItems: [],
         memberLevels: {},
-        superFans: {},
         teamRanking: {},
         recentEvents: [],
         seenEventIds: {}
@@ -189,7 +185,7 @@ function normalizeClientShape(client) {
   client.settings.level.sortMode ||= "latest";
   client.settings.level.minLevel ??= 0;
   if (client.settings.gift.superFanIds) delete client.settings.gift.superFanIds;
-  client.superFans ||= {};
+  if (client.settings.gift.superFanColor) delete client.settings.gift.superFanColor;
   client.teamRanking ||= {};
   client.settings.teamRanking ||= { layout: "list", maxItems: 5, fontSize: 28 };
   client.gifts ||= [];
@@ -216,7 +212,6 @@ export function getClient(clientIdRaw) {
       levelCards: [],
       feedItems: [],
       memberLevels: {},
-      superFans: {},
       teamRanking: {},
       recentEvents: [],
       seenEventIds: {}
@@ -261,40 +256,6 @@ export function markSeen(client, eventId) {
 export function pushRecentEvent(client, item) {
   client.recentEvents.unshift({ ...item, at: now() });
   client.recentEvents = client.recentEvents.slice(0, 60);
-}
-
-export function recordSuperFan(client, info) {
-  if (!info?.userId) return null;
-  client.superFans ||= {};
-  const key = String(info.userId);
-  client.superFans[key] = {
-    userId: key,
-    uniqueId: info.uniqueId || "",
-    nickname: info.nickname || "익명",
-    profileImage: info.profileImage || "",
-    eventName: info.eventName || "superfan",
-    source: info.source || "manual",
-    verified: info.verified !== false,
-    lastSeenAt: now(),
-    createdAt: client.superFans[key]?.createdAt || now()
-  };
-  scheduleSave();
-  return client.superFans[key];
-}
-
-function getSuperFanInfo(client, item) {
-  client.superFans ||= {};
-  const candidates = [item.userId, item.uniqueId, item.nickname]
-    .map((v) => String(v || "").trim())
-    .filter(Boolean);
-  for (const value of candidates) {
-    if (client.superFans[value]) return client.superFans[value];
-  }
-  const lower = candidates.map((v) => v.toLowerCase());
-  return Object.values(client.superFans).find((fan) => {
-    const fanValues = [fan.userId, fan.uniqueId, fan.nickname].map((v) => String(v || "").trim().toLowerCase()).filter(Boolean);
-    return fanValues.some((v) => lower.includes(v));
-  }) || null;
 }
 
 function isGift(item) { return item.feedType === "gift" || item.type === "gift"; }
@@ -361,27 +322,8 @@ function trimFeed(client) {
 export function addGift(client, gift) {
   const s = client.settings.gift;
   if (Number(gift.totalCoins || 0) < Number(s.minCoins || 0)) return null;
-
-  let superFan = null;
-  if (!gift.ignoreSuperFan) {
-    if (gift.superFan === true) {
-      superFan = recordSuperFan(client, {
-        eventName: "giftSuperFanSignal",
-        source: "gift",
-        verified: true,
-        userId: gift.userId,
-        uniqueId: gift.uniqueId,
-        nickname: gift.nickname,
-        profileImage: gift.profileImage
-      });
-    } else {
-      superFan = getSuperFanInfo(client, gift);
-    }
-  }
   const item = {
     ...gift,
-    isSuperFan: Boolean(superFan),
-    superFanNickname: superFan?.nickname || "",
     feedType: "gift",
     id: gift.id || `gift:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     createdAt: gift.createdAt || now()
@@ -469,7 +411,6 @@ export function getPublicState(clientIdRaw) {
     gifts,
     levelCards,
     allItems: client.feedItems,
-    superFans: client.superFans || {},
     teamRanking: getTeamRankingList(client),
     serverTime: now()
   };

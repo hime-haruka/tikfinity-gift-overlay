@@ -49,10 +49,9 @@ function renderPresetPalette() {
   $("presetPalette").innerHTML = Object.entries(presets).map(([key, preset]) => {
     const g = preset.gift || {};
     const l = preset.level || {};
-    const sf = preset.superFan || g;
     const bg = `linear-gradient(135deg, ${g.gradientFrom || g.border || "#ddd"}, ${g.gradientTo || l.gradientTo || "#fff"})`;
     return `<button type="button" class="preset-chip ${key === active ? "active" : ""}" data-preset-key="${escapeHtml(key)}" title="${escapeHtml(preset.label || key)}">
-      <span class="preset-dot" style="--preset-bg:${escapeHtml(bg)}"><i style="background:${escapeHtml(l.gradientFrom || l.border || "#ddd")}"></i><b style="background:${escapeHtml(sf.gradientFrom || sf.border || "#ffd36a")}"></b></span>
+      <span class="preset-dot" style="--preset-bg:${escapeHtml(bg)}"><i style="background:${escapeHtml(l.gradientFrom || l.border || "#ddd")}"></i></span>
       <span>${escapeHtml(preset.label || key)}</span>
     </button>`;
   }).join("");
@@ -61,7 +60,6 @@ function renderPresetPalette() {
 function renderColorEditors(settings) {
   $("giftBaseColorGrid").innerHTML = colorInputs("giftBase");
   $("levelBaseColorGrid").innerHTML = colorInputs("levelBase");
-  $("superFanColorGrid").innerHTML = colorInputs("superFan");
 
   $("giftTierGrid").innerHTML = (settings.gift.tiers || []).map((tier, i) => `
     <article class="tier-card">
@@ -79,7 +77,6 @@ function renderColorEditors(settings) {
 
   setColor("giftBase", settings.gift.colors);
   setColor("levelBase", settings.level.colors);
-  setColor("superFan", settings.gift.superFanColor);
   (settings.gift.tiers || []).forEach((tier, i) => setColor(`giftTier_${i}`, tier.color));
   (settings.level.tiers || []).forEach((tier, i) => setColor(`levelTier_${i}`, tier.color));
 }
@@ -153,7 +150,6 @@ function collectSettings() {
       cardHeight: getNum("giftCardHeight"),
       pinnedIds: currentSettings.gift.pinnedIds || [],
       colors: getColor("giftBase"),
-      superFanColor: getColor("superFan"),
       tiers: giftTiers
     },
     level: {
@@ -196,7 +192,6 @@ function applyPresetToUI(key = getValue("activePreset")) {
   currentSettings.activePreset = key;
   setColor("giftBase", preset.gift);
   setColor("levelBase", preset.level);
-  setColor("superFan", preset.superFan || preset.gift);
   (currentSettings.gift.tiers || []).forEach((tier, i) => setColor(`giftTier_${i}`, preset.giftTiers?.[i]?.color || preset.gift));
   (currentSettings.level.tiers || []).forEach((tier, i) => setColor(`levelTier_${i}`, preset.levelTiers?.[i]?.color || preset.level));
   renderPresetPalette();
@@ -225,7 +220,7 @@ function renderPinList(type, items) {
       ? `${item.nickname || "익명"} / ${item.giftName || "Gift"}`
       : `${item.nickname || "익명"} / Lv.${item.previousLevel || 0} → Lv.${item.level || 0}`;
     const sub = type === "gift"
-      ? `${item.isSuperFan ? "슈퍼팬 · " : ""}${Number(item.totalCoins || 0).toLocaleString()}코인 · ${new Date(item.createdAt || Date.now()).toLocaleTimeString()}`
+      ? `${Number(item.totalCoins || 0).toLocaleString()}코인 · ${new Date(item.createdAt || Date.now()).toLocaleTimeString()}`
       : `${new Date(item.createdAt || Date.now()).toLocaleTimeString()}`;
     return `<label class="pin-row">
       <input type="checkbox" data-pin-type="${type}" data-pin-id="${escapeHtml(item.id)}" ${item.pinned ? "checked" : ""}>
@@ -328,9 +323,7 @@ function renderRemote(tab) {
       <label>금액<input id="giftCoins" type="number" min="0" step="1" value="5000"></label>
       <label>수량<input id="giftCount" type="number" min="1" step="1" value="1"></label>
     </div>
-    <label class="remote-check"><input id="giftSuperFan" type="checkbox"><span>슈퍼팬으로 테스트</span></label>
     <button type="button" data-remote-action="gift">테스트 기프트</button>
-    <button type="button" data-remote-action="superfan">슈퍼팬 등록+기프트</button>
     <hr>
     <label>레벨업 닉네임<input id="levelNickname" type="text" value="테스트_레벨업유저"></label>
     <div class="remote-row">
@@ -383,12 +376,11 @@ async function runRemoteAction(action) {
     const nickname = remoteValue("giftNickname") || "테스트 닉네임";
     const coins = remoteNum("giftCoins", 500);
     const count = remoteNum("giftCount", 1);
-    const isSuperFan = Boolean(remoteValue("giftSuperFan"));
-    const userId = isSuperFan ? "test-superfan-user" : `test-user-${Date.now()}`;
+    const userId = `test-user-${Date.now()}`;
     await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, uniqueId: userId, nickname, coins, count, superFan: isSuperFan })
+      body: JSON.stringify({ userId, uniqueId: userId, nickname, coins, count })
     });
     await loadState();
     setStatus("테스트 기프트를 보냈습니다.");
@@ -405,22 +397,6 @@ async function runRemoteAction(action) {
     });
     await loadState();
     setStatus("테스트 레벨업을 보냈습니다.");
-    return;
-  }
-  if (action === "superfan") {
-    const nickname = remoteValue("giftNickname") || "테스트 닉네임";
-    await fetch(`/api/test/${encodeURIComponent(clientId)}/superfan`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: "test-superfan-user", uniqueId: "test-superfan-user", nickname })
-    });
-    await fetch(`/api/test/${encodeURIComponent(clientId)}/gift`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: "test-superfan-user", uniqueId: "test-superfan-user", nickname, coins: remoteNum("giftCoins", 1000), count: remoteNum("giftCount", 1), superFan: true })
-    });
-    await loadState();
-    setStatus("테스트 유저를 슈퍼팬으로 등록하고 기프트를 보냈습니다.");
     return;
   }
   if (action === "teamRanking") {
@@ -446,7 +422,7 @@ async function runRemoteAction(action) {
   if (action === "reset") {
     await fetch(`/api/reset/${encodeURIComponent(clientId)}`, { method: "POST" });
     await loadState();
-    setStatus("화면 상태를 초기화했습니다. 슈퍼팬·팀랭킹 기록과 설정은 유지됩니다.");
+    setStatus("화면 상태를 초기화했습니다. 팀랭킹 기록과 설정은 유지됩니다.");
   }
 }
 

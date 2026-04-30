@@ -2,8 +2,8 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { addGift, addLevelCard, getClient, getPublicState, hydrateStateFromSupabase, markSeen, pushRecentEvent, recordSuperFan, recordTeamRanking, resetClient, setPinned, updateSettings } from "./state.js";
-import { extractEventName, getMemberLevelFromAnyEvent, normalizeGift, normalizeMemberLevelChange, normalizeSuperFanEvent } from "./event-normalizer.js";
+import { addGift, addLevelCard, getClient, getPublicState, hydrateStateFromSupabase, markSeen, pushRecentEvent, recordTeamRanking, resetClient, setPinned, updateSettings } from "./state.js";
+import { extractEventName, getMemberLevelFromAnyEvent, normalizeGift, normalizeMemberLevelChange } from "./event-normalizer.js";
 import { getAllowedOverlays, getRegisteredClient } from "./clients.js";
 import { COLOR_PRESETS } from "./settings-defaults.js";
 
@@ -113,12 +113,6 @@ app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
 
   pushRecentEvent(client, { event: eventName || "unknown" });
 
-  const superFan = normalizeSuperFanEvent(payload);
-  let superFanRecorded = null;
-  if (superFan) {
-    superFanRecorded = recordSuperFan(client, superFan);
-  }
-
   const gift = normalizeGift(payload);
   let giftAdded = null;
   if (gift && !markSeen(client, gift.id)) {
@@ -138,7 +132,6 @@ app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
     ok: true,
     clientId,
     received: eventName,
-    superFanRecorded: Boolean(superFanRecorded),
     giftAdded: Boolean(giftAdded),
     levelAdded: Boolean(levelAdded),
     teamRankingUpdated: Boolean(teamRankingUpdated)
@@ -148,20 +141,11 @@ app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
 app.post("/api/test/:clientId/gift", requireRegisteredClient, (req, res) => {
   const { client } = getClient(req.clientId);
   const body = req.body || {};
-  if (body.superFan) {
-    recordSuperFan(client, {
-      eventName: "superfantest",
-      userId: body.userId || "test-superfan-user",
-      uniqueId: body.uniqueId || body.userId || "test-superfan-user",
-      nickname: body.nickname || "엄청긴닉네임_테스트후원자_전광판확인용",
-      profileImage: body.profileImage || ""
-    });
-  }
   const gift = {
     id: `testgift:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     type: "gift",
-    userId: body.userId || (body.superFan ? "test-superfan-user" : "test-user"),
-    uniqueId: body.uniqueId || (body.superFan ? "test_superfan_user" : "test_user"),
+    userId: body.userId || "test-user",
+    uniqueId: body.uniqueId || "test_user",
     nickname: body.nickname || "엄청긴닉네임_테스트후원자_전광판확인용",
     profileImage: body.profileImage || "",
     giftId: "test-gift",
@@ -195,8 +179,8 @@ app.post("/api/test/:clientId/level", requireRegisteredClient, (req, res) => {
   const card = {
     id: `testlevel:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     type: "member_level_up",
-    userId: body.userId || (body.superFan ? "test-superfan-user" : "test-user"),
-    uniqueId: body.uniqueId || (body.superFan ? "test_superfan_user" : "test_user"),
+    userId: body.userId || "test-user",
+    uniqueId: body.uniqueId || "test_user",
     nickname: body.nickname || "엄청긴닉네임_레벨업멤버_전광판확인용",
     profileImage: body.profileImage || "",
     previousLevel: Number(body.previousLevel || 9),
@@ -204,19 +188,6 @@ app.post("/api/test/:clientId/level", requireRegisteredClient, (req, res) => {
     createdAt: Date.now()
   };
   res.json({ ok: true, level: addLevelCard(client, card) });
-});
-
-app.post("/api/test/:clientId/superfan", requireRegisteredClient, (req, res) => {
-  const { client } = getClient(req.clientId);
-  const body = req.body || {};
-  const fan = recordSuperFan(client, {
-    eventName: "superfanjoin",
-    userId: body.userId || "test-superfan-user",
-    uniqueId: body.uniqueId || "test_superfan_user",
-    nickname: body.nickname || "엄청긴닉네임_테스트후원자_전광판확인용",
-    profileImage: body.profileImage || ""
-  });
-  res.json({ ok: true, superFan: fan });
 });
 
 await hydrateStateFromSupabase();

@@ -45,7 +45,6 @@ function styleForItem(item, settings) {
   let c = base;
   if (gift) {
     c = colorByTier(item.totalCoins, settings.gift.tiers, base);
-    if (item.isSuperFan) c = settings.gift.superFanColor || c;
   } else {
     c = colorByTier(item.level, settings.level.tiers, base);
   }
@@ -145,8 +144,7 @@ function signatureForItem(item, settings) {
       giftImage: settings.gift.showGiftImage ? item.giftImage || "" : "",
       giftName: settings.gift.showGiftName ? item.giftName || "Gift" : "",
       count: item.count || 1,
-      totalCoins: settings.gift.showDiamondValue ? item.totalCoins || 0 : 0,
-      isSuperFan: !!item.isSuperFan
+      totalCoins: settings.gift.showDiamondValue ? item.totalCoins || 0 : 0
     });
   }
   return JSON.stringify({

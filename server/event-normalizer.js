@@ -22,26 +22,6 @@ function str(...values) {
   return "";
 }
 
-function boolOrUndefined(v) {
-  if (typeof v === "boolean") return v;
-  if (v === "true") return true;
-  if (v === "false") return false;
-  return undefined;
-}
-
-function hasSuperFanBadge(data) {
-  const badges = Array.isArray(data?.userBadges) ? data.userBadges : [];
-  const sceneTypes = Array.isArray(data?.userSceneTypes) ? data.userSceneTypes : [];
-  return badges.some((badge) => Number(badge?.badgeSceneType) === 10) || sceneTypes.some((type) => Number(type) === 10);
-}
-
-function hasDirectSuperFanFlag(data) {
-  return data?.isSubscriber === true || data?.isMember === true || data?.isSuperFan === true || data?.subscriber === true || data?.superFan === true;
-}
-
-function hasSuperFanSignal(data) {
-  return hasDirectSuperFanFlag(data) || hasSuperFanBadge(data);
-}
 
 export function extractEventName(payload) {
   return String(payload?.event || payload?.type || payload?.data?.event || "").toLowerCase();
@@ -119,7 +99,6 @@ export function normalizeGift(payload) {
     coins,
     count,
     totalCoins: coins * count,
-    superFan: hasSuperFanSignal(data),
     giftType,
     repeatEnd,
     createdAt: Date.now()
@@ -150,53 +129,3 @@ export function normalizeMemberLevelChange(client, payload) {
   };
 }
 
-export function normalizeSuperFanEvent(payload) {
-  const eventName = extractEventName(payload).replace(/[_\-\s]/g, "").toLowerCase();
-  const data = extractData(payload);
-  const user = data.user || data.sender || data.member || data.owner || data.envelopeInfo?.user || {};
-
-  // 슈퍼팬 판정 기준을 엄격하게 제한합니다.
-  // teamMemberLevel은 팀 레벨 랭킹용 값이라 슈퍼팬 판정에 쓰지 않습니다.
-  const superFanEvents = new Set([
-    "superfan",
-    "superfanjoin",
-    "superfanbox",
-    "subscribe",
-    "subscription",
-    "subscriber",
-    "memberjoin",
-    "membershipjoin"
-  ]);
-  const eventSignal = superFanEvents.has(eventName);
-  const flagSignal = hasDirectSuperFanFlag(data);
-  const badgeSignal = hasSuperFanBadge(data);
-
-  if (!eventSignal && !flagSignal && !badgeSignal) return null;
-
-  const userId = str(
-    data.userId,
-    data.user_id,
-    data.uniqueId,
-    data.username,
-    data.nickname,
-    user.userId,
-    user.user_id,
-    user.uniqueId,
-    user.username,
-    user.nickname
-  );
-  if (!userId) return null;
-
-  return {
-    type: eventName === "superfanbox" ? "super_fan_box" : "super_fan",
-    eventName: eventName || "superfanbadge",
-    userId,
-    uniqueId: str(data.uniqueId, data.username, user.uniqueId, user.username),
-    nickname: str(data.nickname, data.displayName, user.nickname, user.displayName, data.uniqueId, data.username, "익명"),
-    profileImage: str(data.profilePictureUrl, data.profileImage, data.avatar, user.profilePictureUrl, user.profileImage, user.avatar),
-    content: str(data.content?.defaultPattern, data.commonBarrageContent?.defaultPattern),
-    source: eventSignal ? "event" : flagSignal ? "flag" : "badgeSceneType10",
-    verified: true,
-    createdAt: Date.now()
-  };
-}
