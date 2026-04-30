@@ -35,18 +35,6 @@
       "team-ranking": true
     }
   },
-  "midnight": {
-    "name": "midnight 별하",
-    "status": "active",
-    "memo": "별하",
-    "createdAt": "2026-04-29",
-    "entitlements": {
-      "gift": true,
-      "level": true,
-      "all": true,
-      "team-ranking": true
-    }
-  },
   "hoddoxxx_07": {
     "name": "호또",
     "status": "active",
