@@ -22,7 +22,6 @@ if (value !== undefined && value !== null && String(value).trim() !== "") return
 return "";
 }
 
-// ✅ 추가된 부분 (에러 원인 해결)
 function boolOrUndefined(value) {
 if (value === undefined || value === null || value === '') return undefined;
 if (typeof value === 'boolean') return value;
