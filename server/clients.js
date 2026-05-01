@@ -8,7 +8,8 @@ export const OVERLAY_CATALOG = {
   gift: { id: "gift", name: "기프트 보드", description: "기프트 이벤트 전용 오버레이" },
   level: { id: "level", name: "레벨업 보드", description: "멤버 레벨업 전용 오버레이" },
   all: { id: "all", name: "통합 보드", description: "기프트와 레벨업을 한 화면에 표시" },
-  "team-ranking": { id: "team-ranking", name: "팀 레벨 랭킹", description: "퇴장해도 유지되는 팀 레벨 랭킹 보드" }
+  "team-ranking": { id: "team-ranking", name: "팀 레벨 랭킹", description: "퇴장해도 유지되는 팀 레벨 랭킹 보드" },
+  "audio-reactive": { id: "audio-reactive", name: "오디오 스펙트럼", description: "투명 배경 오디오 반응형 스펙트럼" }
 };
 
 function safeClientId(clientId) {
@@ -73,7 +74,7 @@ export function getAllowedOverlays(clientIdRaw, baseUrl = "") {
   if (!result.ok) return result;
   const entitlements = result.client.entitlements || {};
   const overlays = Object.values(OVERLAY_CATALOG)
-    .filter((overlay) => entitlements[overlay.id] !== false)
+    .filter((overlay) => entitlements[overlay.id] === true)
     .map((overlay) => ({
       ...overlay,
       overlayUrl: `${baseUrl}/overlay/${encodeURIComponent(result.clientId)}/${overlay.id}`,

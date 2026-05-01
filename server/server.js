@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { addGift, addLevelCard, getClient, getPublicState, hydrateStateFromSupabase, markSeen, pushRecentEvent, recordTeamRanking, resetClient, setPinned, updateSettings } from "./state.js";
+import { addGift, addLevelCard, getClient, getPublicState, hydrateStateFromSupabase, markSeen, pushRecentEvent, recordTeamRanking, resetClient, resetTeamRanking, setPinned, updateSettings } from "./state.js";
 import { extractEventName, getMemberLevelFromAnyEvent, normalizeGift, normalizeMemberLevelChange } from "./event-normalizer.js";
 import { getAllowedOverlays, getRegisteredClient } from "./clients.js";
 import { COLOR_PRESETS } from "./settings-defaults.js";
@@ -45,7 +45,7 @@ function requireOverlayAccess(req, res, next) {
 }
 
 app.get("/", (req, res) => {
-  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>TikFinity Overlay Server</title></head><body style="font-family:sans-serif;padding:32px"><h1>TikFinity Overlay Server</h1><p>Gift: <code>/overlay/CLIENT_ID/gift</code></p><p>Level: <code>/overlay/CLIENT_ID/level</code></p><p>Team Ranking: <code>/overlay/CLIENT_ID/team-ranking</code></p><p>Settings: <code>/settings/CLIENT_ID</code></p><p>Health: <a href="/health">/health</a></p></body></html>`);
+  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>TikFinity Overlay Server</title></head><body style="font-family:sans-serif;padding:32px"><h1>TikFinity Overlay Server</h1><p>Gift: <code>/overlay/CLIENT_ID/gift</code></p><p>Level: <code>/overlay/CLIENT_ID/level</code></p><p>Team Ranking: <code>/overlay/CLIENT_ID/team-ranking</code></p><p>Audio Reactive: <code>/overlay/CLIENT_ID/audio-reactive</code></p><p>Settings: <code>/settings/CLIENT_ID</code></p><p>Health: <a href="/health">/health</a></p></body></html>`);
 });
 
 app.get("/health", (req, res) => res.json({ ok: true, time: Date.now() }));
@@ -68,7 +68,7 @@ app.get("/overlay/:clientId", requireRegisteredClient, (req, res) => {
 });
 
 app.get("/overlay/:clientId/:mode", requireOverlayAccess, (req, res) => {
-  const fileName = req.overlayMode === "team-ranking" ? "team-ranking.html" : "overlay.html";
+  const fileName = req.overlayMode === "team-ranking" ? "team-ranking.html" : (req.overlayMode === "audio-reactive" ? "audio-reactive.html" : "overlay.html");
   res.sendFile(path.join(__dirname, "public", "overlay", fileName));
 });
 
@@ -104,6 +104,10 @@ app.post("/api/pins/:clientId", requireRegisteredClient, (req, res) => {
 
 app.post("/api/reset/:clientId", requireRegisteredClient, (req, res) => {
   res.json({ ok: true, state: resetClient(req.clientId) });
+});
+
+app.post("/api/reset/:clientId/team-ranking", requireRegisteredClient, (req, res) => {
+  res.json({ ok: true, state: resetTeamRanking(req.clientId) });
 });
 
 app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {

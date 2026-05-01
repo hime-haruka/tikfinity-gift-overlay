@@ -18,6 +18,7 @@ $("clientLabel").textContent = `Client ID: ${clientId}`;
 $("giftOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/gift`;
 $("levelOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/level`;
 $("teamRankingOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/team-ranking`;
+$("audioReactiveOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/audio-reactive`;
 $("allOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/all`;
 
 function setStatus(msg) { status.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`; }
@@ -96,6 +97,50 @@ function getColor(prefix) {
   };
 }
 
+const TEAM_COLOR_KEYS = ["text", "background", "background2", "border", "accent", "second", "third"];
+function setTeamRankingColors(colors = {}) {
+  TEAM_COLOR_KEYS.forEach((key) => setValue(`teamRankingColor_${key}`, colors[key]));
+}
+function getTeamRankingColors() {
+  return Object.fromEntries(TEAM_COLOR_KEYS.map((key) => [key, getValue(`teamRankingColor_${key}`)]));
+}
+function setAudioSettings(audio = {}) {
+  setValue("audioType", audio.type || "bars");
+  setValue("audioColor", audio.color || "#ff4da6");
+  setValue("audioSensitivity", audio.sensitivity ?? 1.25);
+  setValue("audioSmoothing", audio.smoothing ?? 0.82);
+  setValue("audioCount", audio.count ?? 64);
+  setValue("audioSize", audio.size ?? 1);
+  setValue("audioSpeed", audio.speed ?? 1);
+  setValue("audioOpacity", audio.opacity ?? 0.92);
+  setValue("audioPosition", audio.position || "bottom");
+  setChecked("audioMirror", audio.mirror);
+  setChecked("audioGlow", audio.glow !== false);
+  renderAudioPreview();
+}
+function getAudioSettings() {
+  return {
+    enabled: true,
+    type: getValue("audioType"),
+    color: getValue("audioColor"),
+    sensitivity: getNum("audioSensitivity"),
+    smoothing: getNum("audioSmoothing"),
+    count: getNum("audioCount"),
+    size: getNum("audioSize"),
+    speed: getNum("audioSpeed"),
+    opacity: getNum("audioOpacity"),
+    position: getValue("audioPosition"),
+    mirror: getChecked("audioMirror"),
+    glow: getChecked("audioGlow")
+  };
+}
+function renderAudioPreview() {
+  const el = $("audioValuePreview");
+  if (!el) return;
+  const v = getAudioSettings();
+  el.textContent = `현재값 · 타입 ${v.type} / 감도 ${v.sensitivity} / 부드러움 ${v.smoothing} / 개수 ${v.count} / 크기 ${v.size} / 속도 ${v.speed} / 투명도 ${v.opacity}`;
+}
+
 async function loadSettings() {
   const res = await fetch(`/api/settings/${encodeURIComponent(clientId)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -126,6 +171,8 @@ async function loadSettings() {
   setValue("teamRankingLayout", currentSettings.teamRanking?.layout || "list");
   setValue("teamRankingMaxItems", currentSettings.teamRanking?.maxItems || 5);
   setValue("teamRankingFontSize", currentSettings.teamRanking?.fontSize || 24);
+  setTeamRankingColors(currentSettings.teamRanking?.colors || {});
+  setAudioSettings(currentSettings.audioReactive || {});
 
   renderColorEditors(currentSettings);
   await loadState();
@@ -166,8 +213,10 @@ function collectSettings() {
     teamRanking: {
       layout: getValue("teamRankingLayout") === "card" ? "card" : "list",
       maxItems: getNum("teamRankingMaxItems") || 5,
-      fontSize: getNum("teamRankingFontSize") || 24
-    }
+      fontSize: getNum("teamRankingFontSize") || 24,
+      colors: getTeamRankingColors()
+    },
+    audioReactive: getAudioSettings()
   };
 }
 
@@ -371,6 +420,19 @@ document.body.addEventListener("click", async (event) => {
 
 $("saveBtn").addEventListener("click", () => saveSettings().catch((err) => setStatus(`저장 실패: ${err.message}`)));
 $("reloadStateBtn").addEventListener("click", () => loadState().then(() => setStatus("목록을 새로고침했습니다.")).catch((err) => setStatus(`목록 로드 실패: ${err.message}`)));
+
+let liveSaveTimer = null;
+function scheduleLiveSave() {
+  clearTimeout(liveSaveTimer);
+  liveSaveTimer = setTimeout(() => saveSettings().catch((err) => setStatus(`자동 저장 실패: ${err.message}`)), 450);
+}
+["audioType", "audioColor", "audioSensitivity", "audioSmoothing", "audioCount", "audioSize", "audioSpeed", "audioOpacity", "audioPosition", "audioMirror", "audioGlow", "teamRankingLayout", "teamRankingMaxItems", "teamRankingFontSize", ...TEAM_COLOR_KEYS.map((key) => `teamRankingColor_${key}`)]
+  .forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener("input", () => { if (id.startsWith("audio")) renderAudioPreview(); scheduleLiveSave(); });
+    el.addEventListener("change", () => { if (id.startsWith("audio")) renderAudioPreview(); scheduleLiveSave(); });
+  });
 async function runRemoteAction(action) {
   if (action === "gift") {
     const nickname = remoteValue("giftNickname") || "테스트 닉네임";

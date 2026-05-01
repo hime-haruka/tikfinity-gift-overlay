@@ -187,7 +187,8 @@ function normalizeClientShape(client) {
   if (client.settings.gift.superFanIds) delete client.settings.gift.superFanIds;
   if (client.settings.gift.superFanColor) delete client.settings.gift.superFanColor;
   client.teamRanking ||= {};
-  client.settings.teamRanking ||= { layout: "list", maxItems: 5, fontSize: 28 };
+  client.settings.teamRanking = deepMerge(DEFAULT_SETTINGS.teamRanking, client.settings.teamRanking || {});
+  client.settings.audioReactive = deepMerge(DEFAULT_SETTINGS.audioReactive, client.settings.audioReactive || {});
   client.gifts ||= [];
   client.levelCards ||= [];
   client.feedItems ||= [];

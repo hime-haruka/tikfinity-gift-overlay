@@ -185,3 +185,9 @@ body.has-remote .wrap{
 @media(max-width:620px){
   .remote-row{grid-template-columns:1fr !important;}
 }
+
+/* Audio reactive controls */
+input[type=range]{width:100%;accent-color:#b69cff;cursor:pointer}
+.color-field{min-width:0}
+.color-field input[type=color]{margin-top:6px;border:1px solid var(--line);background:#fff}
+button.danger{color:#b43b64!important}

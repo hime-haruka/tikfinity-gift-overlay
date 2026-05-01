@@ -19,14 +19,14 @@ function initials(name) {
 
 function applyRankingColors(settings) {
   const root = document.documentElement;
-  // 랭킹 보드는 방송 화면에서 흔들리지 않게 불투명 다크 카드로 고정합니다.
-  root.style.setProperty("--rank-text", "#fffaf0");
-  root.style.setProperty("--rank-border", "rgba(255,255,255,.10)");
-  root.style.setProperty("--rank-bg", "#141719");
-  root.style.setProperty("--rank-bg-2", "#1a1d20");
-  root.style.setProperty("--rank-accent", "#ffd84d");
-  root.style.setProperty("--rank-second", "#c8d0dc");
-  root.style.setProperty("--rank-third", "#d97a43");
+  const c = settings.teamRanking?.colors || {};
+  root.style.setProperty("--rank-text", c.text || "#fffaff");
+  root.style.setProperty("--rank-border", c.border || "rgba(255,255,255,.10)");
+  root.style.setProperty("--rank-bg", c.background || "#141719");
+  root.style.setProperty("--rank-bg-2", c.background2 || "#1a1d20");
+  root.style.setProperty("--rank-accent", c.accent || "#ffd84d");
+  root.style.setProperty("--rank-second", c.second || "#c8d0dc");
+  root.style.setProperty("--rank-third", c.third || "#d97a43");
 }
 
 function getItemKey(item) {

@@ -256,6 +256,29 @@ export const DEFAULT_SETTINGS = {
   teamRanking: {
     layout: "list",
     maxItems: 5,
-    fontSize: 24
+    fontSize: 24,
+    colors: {
+      text: "#fffaff",
+      background: "#141719",
+      background2: "#1a1d20",
+      border: "rgba(255, 255, 255, 0.10)",
+      accent: "#ffd84d",
+      second: "#c8d0dc",
+      third: "#d97a43"
+    }
+  },
+  audioReactive: {
+    enabled: true,
+    type: "bars",
+    color: "#ff4da6",
+    sensitivity: 1.25,
+    smoothing: 0.82,
+    count: 64,
+    size: 1,
+    speed: 1,
+    opacity: 0.92,
+    mirror: false,
+    glow: true,
+    position: "bottom"
   }
 };
