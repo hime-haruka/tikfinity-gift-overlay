@@ -50,6 +50,25 @@ app.get("/", (req, res) => {
 
 app.get("/health", (req, res) => res.json({ ok: true, time: Date.now() }));
 
+app.get("/api/debug/routes", (req, res) => {
+  res.json({
+    ok: true,
+    audioApi: true,
+    apiAudioPost: true,
+    apiAudioGet: true,
+    routes: [
+      "GET /api/debug/routes",
+      "POST /api/audio/:clientId",
+      "GET /api/audio/:clientId",
+      "GET /api/client/:clientId/overlays",
+      "GET /api/settings/:clientId",
+      "POST /api/settings/:clientId",
+      "POST /api/events/:clientId"
+    ],
+    time: Date.now()
+  });
+});
+
 app.get("/api/client/:clientId", requireRegisteredClient, (req, res) => {
   res.json({ ok: true, clientId: req.clientId, client: req.clientMeta });
 });
