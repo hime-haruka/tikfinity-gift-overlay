@@ -46,5 +46,17 @@
       "all": true,
       "team-ranking": false
     }
+  },
+    "huhu06575_": {
+    "name": "후후",
+    "status": "active",
+    "memo": "후후",
+    "createdAt": "2026-05-01",
+    "entitlements": {
+      "gift": true,
+      "level": true,
+      "all": true,
+      "team-ranking": true
+    }
   }
 }
