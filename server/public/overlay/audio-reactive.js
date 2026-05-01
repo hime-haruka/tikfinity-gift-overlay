@@ -12,271 +12,41 @@ const ctx = canvas.getContext("2d");
 const guide = document.getElementById("permissionGuide");
 const startBtn = document.getElementById("startAudioBtn");
 
-let settings = {
-  enabled: true,
-  type: "bars",
-  color: "#ff4da6",
-  sensitivity: 1.25,
-  smoothing: 0.82,
-  count: 64,
-  size: 1,
-  speed: 1,
-  opacity: 0.92,
-  mirror: false,
-  glow: true,
-  position: "bottom"
-};
+let settings = { enabled:true, type:"bars", color:"#ff4da6", sensitivity:1.25, noiseGate:0.10, smoothing:0.82, count:64, size:1, speed:1, opacity:0.92, mirror:false, glow:true, position:"bottom" };
+let dataArray = new Uint8Array(96), targetArray = new Uint8Array(96);
+let started = true, lastAudioAt = 0, particles = [], bubbles = [], twinkles = [], lastSettingsSignature = "", time = 0;
+let energy = 0, peak = 0, activeEnergy = 0;
 
-let dataArray = new Uint8Array(96);
-let started = true;
-let lastAudioAt = 0;
-let particles = [];
-let lastSettingsSignature = "";
-let time = 0;
-
-function clamp(n, min, max) { return Math.max(min, Math.min(max, Number(n) || 0)); }
-function resize() {
-  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  canvas.width = Math.floor(window.innerWidth * dpr);
-  canvas.height = Math.floor(window.innerHeight * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
-function hexToRgb(hex) {
-  const raw = String(hex || "#ff4da6").replace("#", "");
-  const full = raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw.padEnd(6, "0").slice(0, 6);
-  const n = parseInt(full, 16);
-  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
-function rgbString(rgb, alpha = 1) { return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`; }
-function mix(rgb, amount) {
-  const to = amount >= 0 ? 255 : 0;
-  const p = Math.abs(amount);
-  return {
-    r: Math.round(rgb.r + (to - rgb.r) * p),
-    g: Math.round(rgb.g + (to - rgb.g) * p),
-    b: Math.round(rgb.b + (to - rgb.b) * p)
-  };
-}
-function colorVariants(base) {
-  const rgb = hexToRgb(base);
-  return [rgb, mix(rgb, .22), mix(rgb, .42), mix(rgb, -.18), mix(rgb, .62)];
-}
-function applySettings(next = {}) {
-  settings = {
-    ...settings,
-    ...next,
-    sensitivity: clamp(next.sensitivity ?? settings.sensitivity, .2, 4),
-    smoothing: clamp(next.smoothing ?? settings.smoothing, 0, .95),
-    count: Math.round(clamp(next.count ?? settings.count, 12, 160)),
-    size: clamp(next.size ?? settings.size, .4, 3),
-    speed: clamp(next.speed ?? settings.speed, .2, 3),
-    opacity: clamp(next.opacity ?? settings.opacity, .1, 1)
-  };
-  const sig = JSON.stringify({ type: settings.type, count: settings.count, color: settings.color });
-  if (sig !== lastSettingsSignature) {
-    particles = [];
-    lastSettingsSignature = sig;
-  }
-}
-window.applySettings = applySettings;
-
-async function loadSettings() {
-  const res = await fetch(`/api/settings/${encodeURIComponent(clientId)}?t=${Date.now()}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  applySettings(data.settings?.audioReactive || {});
-}
-async function startAudio() {
-  // OBS 브라우저 소스에서는 마이크 권한이 막히므로,
-  // 이 오버레이는 Receiver 앱이 서버로 보낸 오디오 데이터만 읽습니다.
-  started = true;
-  if (guide) {
-    guide.hidden = true;
-  }
-}
-function getLevel(data, index, bins) {
-  if (!data?.length) return 0;
-  const start = Math.floor((index / bins) * data.length);
-  const end = Math.max(start + 1, Math.floor(((index + 1) / bins) * data.length));
-  let sum = 0;
-  for (let i = start; i < end; i++) sum += data[i] || 0;
-  return clamp((sum / (end - start) / 255) * settings.sensitivity, 0, 1.6);
-}
-function yBase(height) {
-  if (settings.position === "top") return height * 0.18;
-  if (settings.position === "center") return height * 0.5;
-  if (settings.position === "full") return height * 0.5;
-  return height * 0.84;
-}
-function clear() { ctx.clearRect(0, 0, window.innerWidth, window.innerHeight); }
-function prepareDraw(alpha = settings.opacity) {
-  const variants = colorVariants(settings.color);
-  ctx.globalAlpha = alpha;
-  ctx.shadowBlur = settings.glow ? 16 * settings.size : 0;
-  ctx.shadowColor = rgbString(variants[1], .8);
-  return variants;
-}
-function drawBars(data) {
-  const w = window.innerWidth, h = window.innerHeight;
-  const variants = prepareDraw();
-  const count = settings.count;
-  const barW = w / count;
-  const baseY = yBase(h);
-  for (let i = 0; i < count; i++) {
-    const level = getLevel(data, i, count);
-    const barH = Math.max(3, level * h * 0.42 * settings.size);
-    const x = i * barW + barW * .12;
-    const y = settings.position === "top" ? baseY : baseY - barH;
-    const grad = ctx.createLinearGradient(0, y, 0, y + barH);
-    grad.addColorStop(0, rgbString(variants[2], .95));
-    grad.addColorStop(1, rgbString(variants[0], .45));
-    ctx.fillStyle = grad;
-    roundRect(x, y, barW * .72, barH, Math.min(12, barW * .36));
-    ctx.fill();
-    if (settings.mirror) {
-      const mx = w - x - barW * .72;
-      roundRect(mx, y, barW * .72, barH, Math.min(12, barW * .36));
-      ctx.fill();
-    }
-  }
-}
-function drawBubbles(data) {
-  const w = window.innerWidth, h = window.innerHeight;
-  const variants = prepareDraw();
-  const count = settings.count;
-  const baseY = yBase(h);
-  for (let i = 0; i < count; i++) {
-    const level = getLevel(data, i, count);
-    const x = (i + .5) / count * w;
-    const drift = Math.sin(time * .02 * settings.speed + i) * 18 * settings.size;
-    const y = settings.position === "full" ? (i * 97 % h) : baseY - level * 160 * settings.size + drift;
-    const r = Math.max(2, (5 + level * 22) * settings.size);
-    ctx.beginPath();
-    ctx.fillStyle = rgbString(variants[i % variants.length], .36 + level * .42);
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-function ensureParticles(data) {
-  const target = settings.count;
-  const variants = colorVariants(settings.color);
-  while (particles.length < target) {
-    const i = particles.length;
-    particles.push({
-      x: Math.random() * window.innerWidth,
-      y: yBase(window.innerHeight) + (Math.random() - .5) * 80,
-      vx: (Math.random() - .5) * .7,
-      vy: -(.4 + Math.random() * 1.5),
-      life: Math.random(),
-      symbol: pickSymbol(settings.type),
-      color: variants[i % variants.length]
-    });
-  }
-  particles = particles.slice(0, target);
-}
-function pickSymbol(type) {
-  if (type === "hearts") return ["♥", "♡", "❤"][Math.floor(Math.random() * 3)];
-  if (type === "stars") return ["★", "✦", "✧", "✩"][Math.floor(Math.random() * 4)];
-  if (type === "notes") return ["♪", "♫", "♬", "♩"][Math.floor(Math.random() * 4)];
-  if (type === "sparkles") return ["✦", "✧", "·"][Math.floor(Math.random() * 3)];
-  return "•";
-}
-function drawParticles(data) {
-  const w = window.innerWidth, h = window.innerHeight;
-  const avg = data?.length ? data.reduce((a, b) => a + b, 0) / data.length / 255 * settings.sensitivity : .1;
-  ensureParticles(data);
-  prepareDraw();
-  particles.forEach((p, i) => {
-    const level = getLevel(data, i % Math.max(1, settings.count), settings.count);
-    p.life += .008 * settings.speed + level * .014;
-    p.x += p.vx * settings.speed + Math.sin(time * .01 + i) * .18;
-    p.y += p.vy * settings.speed * (1 + avg);
-    if (p.life > 1 || p.y < -40 || p.x < -40 || p.x > w + 40) {
-      p.x = Math.random() * w;
-      p.y = settings.position === "top" ? h * .22 : (settings.position === "center" ? h * .62 : h + 30);
-      p.vx = (Math.random() - .5) * .8;
-      p.vy = -(.3 + Math.random() * 1.4);
-      p.life = 0;
-      p.symbol = pickSymbol(settings.type);
-    }
-    const alpha = Math.sin(Math.PI * p.life) * settings.opacity;
-    const size = (settings.type === "particles" ? 10 : 18) * settings.size * (1 + level * 1.8);
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = rgbString(p.color, alpha);
-    ctx.font = `900 ${size}px system-ui, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    if (settings.type === "particles") {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, Math.max(1.5, size * .22), 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.fillText(p.symbol, p.x, p.y);
-    }
-  });
-}
-function roundRect(x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-function draw() {
-  requestAnimationFrame(draw);
-  time += 1;
-  clear();
-  if (!settings.enabled) return;
-  if (!started || !dataArray) return;
-  ctx.save();
-  if (settings.type === "bars") drawBars(dataArray);
-  else if (settings.type === "bubbles") drawBubbles(dataArray);
-  else drawParticles(dataArray);
-  ctx.restore();
-  ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
-}
-
-async function pollAudio() {
-  try {
-    const res = await fetch(`/api/audio/${encodeURIComponent(clientId)}?t=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const levels = Array.isArray(data.levels) ? data.levels : [];
-    dataArray = new Uint8Array(levels.length ? levels : 96);
-    if (levels.length) {
-      levels.slice(0, 160).forEach((value, index) => {
-        dataArray[index] = clamp(value, 0, 255);
-      });
-      lastAudioAt = Date.now();
-      if (guide) guide.hidden = true;
-    } else if (Date.now() - lastAudioAt > 2500 && guide) {
-      guide.hidden = false;
-      guide.querySelector("strong").textContent = "오디오 리시버 대기 중";
-      guide.querySelector("span").textContent = "Receiver 앱에서 오디오 시작을 누르면 스펙트럼이 표시됩니다.";
-      if (startBtn) startBtn.hidden = true;
-    }
-  } catch (err) {
-    if (Date.now() - lastAudioAt > 2500 && guide) {
-      guide.hidden = false;
-      guide.querySelector("strong").textContent = "오디오 데이터 수신 실패";
-      guide.querySelector("span").textContent = err.message;
-      if (startBtn) startBtn.hidden = true;
-    }
-  }
-}
-
-if (startBtn) {
-  startBtn.hidden = true;
-  startBtn.addEventListener("click", () => startAudio().catch(() => {}));
-}
-window.addEventListener("resize", resize);
-resize();
-draw();
-loadSettings().catch(() => {});
-setInterval(() => loadSettings().catch(() => {}), 1000);
-setInterval(pollAudio, 55);
-startAudio().catch(() => {});
-pollAudio();
+function clamp(n,min,max){return Math.max(min,Math.min(max,Number(n)||0));}
+function lerp(a,b,t){return a+(b-a)*t;}
+function resize(){const dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));canvas.width=Math.floor(innerWidth*dpr);canvas.height=Math.floor(innerHeight*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
+function hexToRgb(hex){const raw=String(hex||"#ff4da6").replace("#","");const full=raw.length===3?raw.split("").map(c=>c+c).join(""):raw.padEnd(6,"0").slice(0,6);const n=parseInt(full,16);return{r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
+function rgbString(rgb,a=1){return`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`;}
+function mix(rgb,amount){const to=amount>=0?255:0,p=Math.abs(amount);return{r:Math.round(rgb.r+(to-rgb.r)*p),g:Math.round(rgb.g+(to-rgb.g)*p),b:Math.round(rgb.b+(to-rgb.b)*p)};}
+function colorVariants(base){const rgb=hexToRgb(base);return[rgb,mix(rgb,.22),mix(rgb,.42),mix(rgb,-.18),mix(rgb,.72)];}
+function applySettings(next={}){settings={...settings,...next,sensitivity:clamp(next.sensitivity??settings.sensitivity,.2,4),noiseGate:clamp(next.noiseGate??settings.noiseGate??.10,0,.45),smoothing:clamp(next.smoothing??settings.smoothing,0,.95),count:Math.round(clamp(next.count??settings.count,12,160)),size:clamp(next.size??settings.size,.4,3),speed:clamp(next.speed??settings.speed,.2,3),opacity:clamp(next.opacity??settings.opacity,.1,1)};const sig=JSON.stringify({type:settings.type,count:settings.count,color:settings.color});if(sig!==lastSettingsSignature){particles=[];bubbles=[];twinkles=[];lastSettingsSignature=sig;}}
+window.applySettings=applySettings;
+async function loadSettings(){const res=await fetch(`/api/settings/${encodeURIComponent(clientId)}?t=${Date.now()}`,{cache:"no-store"});if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=await res.json();applySettings(data.settings?.audioReactive||{});}
+async function startAudio(){started=true;if(guide)guide.hidden=true;}
+function yBase(h){if(settings.position==="top")return h*.18;if(settings.position==="center")return h*.58;if(settings.position==="full")return h*.86;return h*.88;}
+function clear(){ctx.clearRect(0,0,innerWidth,innerHeight);}
+function prepareDraw(alpha=settings.opacity){const variants=colorVariants(settings.color);ctx.globalAlpha=alpha;ctx.shadowBlur=settings.glow?16*settings.size:0;ctx.shadowColor=rgbString(variants[1],.8);return variants;}
+function getLevel(data,index,bins){if(!data?.length)return 0;const start=Math.floor(index/bins*data.length),end=Math.max(start+1,Math.floor((index+1)/bins*data.length));let sum=0;for(let i=start;i<end;i++)sum+=data[i]||0;return clamp(sum/(end-start)/255*settings.sensitivity,0,1.6);}
+function getSpawnY(h){if(settings.position==="top")return h*.28+Math.random()*h*.12;if(settings.position==="center")return h*.74+Math.random()*h*.10;return h+30+Math.random()*h*.16;}
+function getTopLimit(h){return settings.position==="top"?-h*.06:-h*.18;}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function drawBars(data){const w=innerWidth,h=innerHeight,variants=prepareDraw(),count=settings.count,barW=w/count,baseY=yBase(h);for(let i=0;i<count;i++){const level=getLevel(data,i,count);if(level<=.003)continue;const barH=Math.max(3,level*h*.42*settings.size),x=i*barW+barW*.12,y=settings.position==="top"?baseY:baseY-barH;const grad=ctx.createLinearGradient(0,y,0,y+barH);grad.addColorStop(0,rgbString(variants[2],.95));grad.addColorStop(1,rgbString(variants[0],.45));ctx.fillStyle=grad;roundRect(x,y,barW*.72,barH,Math.min(12,barW*.36));ctx.fill();if(settings.mirror){const mx=w-x-barW*.72;roundRect(mx,y,barW*.72,barH,Math.min(12,barW*.36));ctx.fill();}}}
+function spawnBubble(strength=activeEnergy){const w=innerWidth,h=innerHeight;if(bubbles.length>=settings.count)return;const variants=colorVariants(settings.color);const r=(7+Math.random()*14+strength*22)*settings.size;bubbles.push({x:Math.random()*w,y:getSpawnY(h),vx:(Math.random()-.5)*.45,vy:-(.55+Math.random()*1.25+strength*1.5)*settings.speed,r,life:0,pop:false,popLife:0,wobble:Math.random()*Math.PI*2,color:variants[Math.floor(Math.random()*variants.length)]});}
+function drawBubbleShape(b){const alpha=settings.opacity*(b.pop?1-b.popLife:Math.sin(Math.PI*clamp(b.life,0,1))*.85);ctx.save();ctx.globalAlpha=alpha;ctx.shadowBlur=settings.glow?18*settings.size:0;ctx.shadowColor=rgbString(mix(b.color,.5),.75);const grad=ctx.createRadialGradient(b.x-b.r*.35,b.y-b.r*.45,b.r*.08,b.x,b.y,b.r);grad.addColorStop(0,"rgba(255,255,255,.82)");grad.addColorStop(.38,rgbString(mix(b.color,.65),.22));grad.addColorStop(1,rgbString(b.color,.08));ctx.fillStyle=grad;ctx.strokeStyle=rgbString(mix(b.color,.55),.62);ctx.lineWidth=Math.max(1,b.r*.08);ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.globalAlpha=alpha*.85;ctx.fillStyle="rgba(255,255,255,.72)";ctx.beginPath();ctx.arc(b.x-b.r*.34,b.y-b.r*.38,Math.max(1.5,b.r*.18),0,Math.PI*2);ctx.fill();ctx.restore();}
+function drawBubblePop(b){const a=(1-b.popLife)*settings.opacity;ctx.save();ctx.globalAlpha=a;ctx.shadowBlur=settings.glow?14*settings.size:0;ctx.shadowColor=rgbString(mix(b.color,.5),.75);ctx.strokeStyle=rgbString(mix(b.color,.65),.62);ctx.lineWidth=Math.max(1,2*settings.size);ctx.beginPath();ctx.arc(b.x,b.y,b.r*(1+b.popLife*1.15),0,Math.PI*2);ctx.stroke();for(let i=0;i<6;i++){const ang=Math.PI*2/6*i+b.wobble,d=b.r*(.55+b.popLife*1.45);ctx.beginPath();ctx.arc(b.x+Math.cos(ang)*d,b.y+Math.sin(ang)*d,Math.max(1.2,b.r*.08*(1-b.popLife)),0,Math.PI*2);ctx.fillStyle=rgbString(mix(b.color,.72),a);ctx.fill();}ctx.restore();}
+function drawBubbles(){const h=innerHeight;if(activeEnergy>.015){const chance=clamp((activeEnergy*2.4+peak*.65)*settings.speed,0,.9),burst=Math.min(4,Math.ceil(activeEnergy*5));for(let i=0;i<burst;i++)if(Math.random()<chance)spawnBubble(activeEnergy);}for(let i=bubbles.length-1;i>=0;i--){const b=bubbles[i];if(!b.pop){b.life+=.0038*settings.speed+activeEnergy*.006;b.wobble+=.026*settings.speed;b.x+=b.vx*settings.speed+Math.sin(b.wobble)*.38*settings.size;b.y+=b.vy;if(b.y<getTopLimit(h)||b.life>1)b.pop=true;drawBubbleShape(b);}else{b.popLife+=.045*settings.speed;drawBubblePop(b);if(b.popLife>=1)bubbles.splice(i,1);}}}
+function pickSymbol(type){if(type==="hearts")return["♥","♡","❤"][Math.floor(Math.random()*3)];if(type==="stars")return["★","✦","✧","✩"][Math.floor(Math.random()*4)];if(type==="notes")return["♪","♫","♬","♩"][Math.floor(Math.random()*4)];if(type==="sparkles")return["✦","✧","·"][Math.floor(Math.random()*3)];return"•";}
+function ensureParticles(){const target=settings.count,variants=colorVariants(settings.color);while(particles.length<target){const i=particles.length;particles.push({x:Math.random()*innerWidth,y:getSpawnY(innerHeight),vx:(Math.random()-.5)*.7,vy:-(.35+Math.random()*1.45),life:Math.random(),symbol:pickSymbol(settings.type),color:variants[i%variants.length]});}particles=particles.slice(0,target);}
+function drawParticles(data){const w=innerWidth,h=innerHeight;ensureParticles();prepareDraw();particles.forEach((p,i)=>{const level=getLevel(data,i%Math.max(1,settings.count),settings.count),drive=Math.max(level,activeEnergy*.8);p.life+=.006*settings.speed+drive*.016;p.x+=p.vx*settings.speed+Math.sin(time*.01+i)*.22;p.y+=p.vy*settings.speed*(1+activeEnergy*1.5);if(p.life>1||p.y<getTopLimit(h)||p.x<-60||p.x>w+60){p.x=Math.random()*w;p.y=getSpawnY(h);p.vx=(Math.random()-.5)*.85;p.vy=-(.35+Math.random()*1.65);p.life=0;p.symbol=pickSymbol(settings.type);}const alpha=Math.sin(Math.PI*p.life)*settings.opacity*(activeEnergy>.01?1:.18);if(alpha<=.01)return;const size=(settings.type==="particles"?10:18)*settings.size*(1+drive*1.8);ctx.globalAlpha=alpha;ctx.fillStyle=rgbString(p.color,alpha);ctx.font=`900 ${size}px system-ui, sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";if(settings.type==="particles"){ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1.5,size*.22),0,Math.PI*2);ctx.fill();}else ctx.fillText(p.symbol,p.x,p.y);});}
+function spawnTwinkle(strength=activeEnergy){if(twinkles.length>=settings.count)return;const variants=colorVariants(settings.color);twinkles.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,life:0,ttl:.55+Math.random()*.55,rot:Math.random()*Math.PI,size:(5+Math.random()*16+strength*34)*settings.size,color:variants[Math.floor(Math.random()*variants.length)]});}
+function drawTwinkles(){if(activeEnergy>.01){const chance=clamp((activeEnergy*2.8+peak*.5)*settings.speed,0,.85),burst=Math.min(5,Math.ceil(activeEnergy*6));for(let i=0;i<burst;i++)if(Math.random()<chance)spawnTwinkle(activeEnergy);}for(let i=twinkles.length-1;i>=0;i--){const t=twinkles[i],progress=clamp(t.life/t.ttl,0,1),pulse=Math.sin(Math.PI*progress),a=pulse*settings.opacity,s=t.size*(.35+pulse*.95);ctx.save();ctx.translate(t.x,t.y);ctx.rotate(t.rot+time*.006);ctx.globalAlpha=a;ctx.shadowBlur=settings.glow?s*1.8:0;ctx.shadowColor=rgbString(mix(t.color,.65),.85);ctx.strokeStyle=rgbString(mix(t.color,.75),.9);ctx.lineWidth=Math.max(1,s*.08);ctx.beginPath();ctx.moveTo(-s,0);ctx.lineTo(s,0);ctx.moveTo(0,-s);ctx.lineTo(0,s);ctx.moveTo(-s*.45,-s*.45);ctx.lineTo(s*.45,s*.45);ctx.moveTo(s*.45,-s*.45);ctx.lineTo(-s*.45,s*.45);ctx.stroke();ctx.fillStyle=rgbString(mix(t.color,.85),.95);ctx.beginPath();ctx.arc(0,0,Math.max(1,s*.10),0,Math.PI*2);ctx.fill();ctx.restore();t.life+=.025*settings.speed;if(t.life>=t.ttl)twinkles.splice(i,1);}}
+function processLevels(levels){const src=levels.slice(0,160).map(v=>clamp(v,0,255));const arr=new Uint8Array(src.length||96);if(!src.length)return arr;const avgRaw=src.reduce((a,b)=>a+b,0)/src.length/255,peakRaw=Math.max(...src)/255,gate=settings.noiseGate??.10;const openAmount=clamp(Math.max((avgRaw-gate)/Math.max(.001,1-gate),(peakRaw-gate*2.15)/Math.max(.001,1-gate*2.15)),0,1);energy=avgRaw;peak=peakRaw;activeEnergy=openAmount*settings.sensitivity;for(let i=0;i<src.length;i++){const normalized=src[i]/255,cut=clamp((normalized-gate)/Math.max(.001,1-gate),0,1),shaped=Math.pow(cut,.82)*openAmount;arr[i]=Math.round(clamp(shaped*255*settings.sensitivity,0,255));}if(openAmount<=.002){for(let i=0;i<arr.length;i++)arr[i]=0;}return arr;}
+function draw(){requestAnimationFrame(draw);time+=1;clear();if(!settings.enabled||!started||!dataArray)return;const follow=1-settings.smoothing;for(let i=0;i<targetArray.length;i++)dataArray[i]=Math.round(lerp(dataArray[i]||0,targetArray[i]||0,clamp(follow,.03,.35)));ctx.save();if(settings.type==="bars")drawBars(dataArray);else if(settings.type==="bubbles")drawBubbles(dataArray);else if(settings.type==="twinkles")drawTwinkles(dataArray);else drawParticles(dataArray);ctx.restore();ctx.globalAlpha=1;ctx.shadowBlur=0;}
+async function pollAudio(){try{const res=await fetch(`/api/audio/${encodeURIComponent(clientId)}?t=${Date.now()}`,{cache:"no-store"});if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=await res.json();const levels=Array.isArray(data.levels)?data.levels:[];if(levels.length){targetArray=processLevels(levels);lastAudioAt=Date.now();if(guide)guide.hidden=true;}else if(Date.now()-lastAudioAt>2500&&guide){targetArray=new Uint8Array(96);guide.hidden=false;guide.querySelector("strong").textContent="오디오 리시버 대기 중";guide.querySelector("span").textContent="Receiver 앱에서 오디오 시작을 누르면 스펙트럼이 표시됩니다.";if(startBtn)startBtn.hidden=true;}}catch(err){targetArray=new Uint8Array(96);if(Date.now()-lastAudioAt>2500&&guide){guide.hidden=false;guide.querySelector("strong").textContent="오디오 데이터 수신 실패";guide.querySelector("span").textContent=err.message;if(startBtn)startBtn.hidden=true;}}}
+if(startBtn){startBtn.hidden=true;startBtn.addEventListener("click",()=>startAudio().catch(()=>{}));}
+addEventListener("resize",resize);resize();draw();loadSettings().catch(()=>{});setInterval(()=>loadSettings().catch(()=>{}),1000);setInterval(pollAudio,55);startAudio().catch(()=>{});pollAudio();

@@ -108,6 +108,7 @@ function setAudioSettings(audio = {}) {
   setValue("audioType", audio.type || "bars");
   setValue("audioColor", audio.color || "#ff4da6");
   setValue("audioSensitivity", audio.sensitivity ?? 1.25);
+  setValue("audioNoiseGate", audio.noiseGate ?? 0.10);
   setValue("audioSmoothing", audio.smoothing ?? 0.82);
   setValue("audioCount", audio.count ?? 64);
   setValue("audioSize", audio.size ?? 1);
@@ -124,6 +125,7 @@ function getAudioSettings() {
     type: getValue("audioType"),
     color: getValue("audioColor"),
     sensitivity: getNum("audioSensitivity"),
+    noiseGate: getNum("audioNoiseGate"),
     smoothing: getNum("audioSmoothing"),
     count: getNum("audioCount"),
     size: getNum("audioSize"),
@@ -138,7 +140,7 @@ function renderAudioPreview() {
   const el = $("audioValuePreview");
   if (!el) return;
   const v = getAudioSettings();
-  el.textContent = `현재값 · 타입 ${v.type} / 감도 ${v.sensitivity} / 부드러움 ${v.smoothing} / 개수 ${v.count} / 크기 ${v.size} / 속도 ${v.speed} / 투명도 ${v.opacity}`;
+  el.textContent = `현재값 · 타입 ${v.type} / 감도 ${v.sensitivity} / 노이즈 컷 ${v.noiseGate} / 부드러움 ${v.smoothing} / 개수 ${v.count} / 크기 ${v.size} / 속도 ${v.speed} / 투명도 ${v.opacity}`;
 }
 
 async function loadSettings() {
