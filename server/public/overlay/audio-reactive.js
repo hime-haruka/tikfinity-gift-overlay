@@ -1,5 +1,12 @@
 const pathParts = location.pathname.split("/").filter(Boolean);
-const clientId = pathParts[1] || "default";
+const params = new URLSearchParams(location.search);
+function resolveClientId() {
+  const fromQuery = params.get("clientId");
+  if (fromQuery) return fromQuery;
+  if (pathParts[0] === "overlay" && pathParts[2]) return pathParts[1];
+  return "";
+}
+const clientId = resolveClientId();
 const canvas = document.getElementById("audioCanvas");
 const ctx = canvas.getContext("2d");
 const guide = document.getElementById("permissionGuide");
