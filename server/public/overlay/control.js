@@ -105,7 +105,7 @@ function getTeamRankingColors() {
   return Object.fromEntries(TEAM_COLOR_KEYS.map((key) => [key, getValue(`teamRankingColor_${key}`)]));
 }
 function setAudioSettings(audio = {}) {
-  setValue("audioType", audio.type || "bars");
+  setValue("audioType", audio.type === "bubbles" ? "particles" : (audio.type || "bars"));
   setValue("audioColor", audio.color || "#ff4da6");
   setValue("audioSensitivity", audio.sensitivity ?? 1.25);
   setValue("audioNoiseGate", audio.noiseGate ?? 0.10);
@@ -428,7 +428,7 @@ function scheduleLiveSave() {
   clearTimeout(liveSaveTimer);
   liveSaveTimer = setTimeout(() => saveSettings().catch((err) => setStatus(`자동 저장 실패: ${err.message}`)), 450);
 }
-["audioType", "audioColor", "audioSensitivity", "audioSmoothing", "audioCount", "audioSize", "audioSpeed", "audioOpacity", "audioPosition", "audioMirror", "audioGlow", "teamRankingLayout", "teamRankingMaxItems", "teamRankingFontSize", ...TEAM_COLOR_KEYS.map((key) => `teamRankingColor_${key}`)]
+["audioType", "audioColor", "audioSensitivity", "audioNoiseGate", "audioSmoothing", "audioCount", "audioSize", "audioSpeed", "audioOpacity", "audioPosition", "audioMirror", "audioGlow", "teamRankingLayout", "teamRankingMaxItems", "teamRankingFontSize", ...TEAM_COLOR_KEYS.map((key) => `teamRankingColor_${key}`)]
   .forEach((id) => {
     const el = $(id);
     if (!el) return;
