@@ -20,10 +20,9 @@ let settings = {
   position: "bottom"
 };
 
-let audioCtx = null;
-let analyser = null;
-let dataArray = null;
-let started = false;
+let dataArray = new Uint8Array(96);
+let started = true;
+let lastAudioAt = 0;
 let particles = [];
 let lastSettingsSignature = "";
 let time = 0;
@@ -71,7 +70,6 @@ function applySettings(next = {}) {
     particles = [];
     lastSettingsSignature = sig;
   }
-  if (analyser) analyser.smoothingTimeConstant = settings.smoothing;
 }
 window.applySettings = applySettings;
 
@@ -82,18 +80,12 @@ async function loadSettings() {
   applySettings(data.settings?.audioReactive || {});
 }
 async function startAudio() {
-  if (started) return;
-  await loadSettings().catch(() => {});
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const source = audioCtx.createMediaStreamSource(stream);
-  analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 512;
-  analyser.smoothingTimeConstant = settings.smoothing;
-  source.connect(analyser);
-  dataArray = new Uint8Array(analyser.frequencyBinCount);
+  // OBS 브라우저 소스에서는 마이크 권한이 막히므로,
+  // 이 오버레이는 Receiver 앱이 서버로 보낸 오디오 데이터만 읽습니다.
   started = true;
-  guide.hidden = true;
+  if (guide) {
+    guide.hidden = true;
+  }
 }
 function getLevel(data, index, bins) {
   if (!data?.length) return 0;
@@ -230,8 +222,7 @@ function draw() {
   time += 1;
   clear();
   if (!settings.enabled) return;
-  if (!started || !analyser || !dataArray) return;
-  analyser.getByteFrequencyData(dataArray);
+  if (!started || !dataArray) return;
   ctx.save();
   if (settings.type === "bars") drawBars(dataArray);
   else if (settings.type === "bubbles") drawBubbles(dataArray);
@@ -241,14 +232,44 @@ function draw() {
   ctx.shadowBlur = 0;
 }
 
-startBtn.addEventListener("click", () => startAudio().catch((err) => {
-  guide.hidden = false;
-  guide.querySelector("span").textContent = `오디오 시작 실패: ${err.message}`;
-}));
+async function pollAudio() {
+  try {
+    const res = await fetch(`/api/audio/${encodeURIComponent(clientId)}?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const levels = Array.isArray(data.levels) ? data.levels : [];
+    dataArray = new Uint8Array(levels.length ? levels : 96);
+    if (levels.length) {
+      levels.slice(0, 160).forEach((value, index) => {
+        dataArray[index] = clamp(value, 0, 255);
+      });
+      lastAudioAt = Date.now();
+      if (guide) guide.hidden = true;
+    } else if (Date.now() - lastAudioAt > 2500 && guide) {
+      guide.hidden = false;
+      guide.querySelector("strong").textContent = "오디오 리시버 대기 중";
+      guide.querySelector("span").textContent = "Receiver 앱에서 오디오 시작을 누르면 스펙트럼이 표시됩니다.";
+      if (startBtn) startBtn.hidden = true;
+    }
+  } catch (err) {
+    if (Date.now() - lastAudioAt > 2500 && guide) {
+      guide.hidden = false;
+      guide.querySelector("strong").textContent = "오디오 데이터 수신 실패";
+      guide.querySelector("span").textContent = err.message;
+      if (startBtn) startBtn.hidden = true;
+    }
+  }
+}
+
+if (startBtn) {
+  startBtn.hidden = true;
+  startBtn.addEventListener("click", () => startAudio().catch(() => {}));
+}
 window.addEventListener("resize", resize);
 resize();
 draw();
 loadSettings().catch(() => {});
 setInterval(() => loadSettings().catch(() => {}), 1000);
-// 브라우저가 자동 권한을 허용하는 환경이면 바로 시작을 시도합니다.
-startAudio().catch(() => { guide.hidden = false; });
+setInterval(pollAudio, 55);
+startAudio().catch(() => {});
+pollAudio();
