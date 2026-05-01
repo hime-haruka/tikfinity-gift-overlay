@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Overlay Control</title>
+  <link rel="stylesheet" href="/overlay/control.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">TikFinity Overlay</p>
+        <h1>오버레이 컨트롤 패널</h1>
+        <p id="clientLabel" class="client-label"></p>
+      </div>
+      <div class="hero-links">
+        <a id="giftOverlayLink" class="open-link" target="_blank">기프트 열기</a>
+        <a id="levelOverlayLink" class="open-link" target="_blank">레벨업 열기</a>
+        <a id="teamRankingOverlayLink" class="open-link" target="_blank">팀 랭킹 열기</a>
+        <a id="audioReactiveOverlayLink" class="open-link" target="_blank">오디오 열기</a>
+        <a id="allOverlayLink" class="open-link soft" target="_blank">통합 열기</a>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="관리 탭">
+      <button class="tab active" data-tab="gift">기프트</button>
+      <button class="tab" data-tab="level">레벨업</button>
+      <button class="tab" data-tab="teamRanking">팀 랭킹</button>
+      <button class="tab" data-tab="audioReactive">오디오 스펙트럼</button>
+      <button class="tab" data-tab="colors">컬러/프리셋</button>
+      <button class="tab" data-tab="pins">고정 관리</button>
+      <button class="tab" data-tab="urls">URL/테스트</button>
+    </nav>
+
+    <aside id="remotePanel" class="remote-panel" aria-label="테스트 리모콘"></aside>
+
+    <section class="tab-page active" data-page="gift">
+      <section class="panel">
+        <div class="panel-head"><span class="icon">🎁</span><div><h2>기프트 표시</h2><p>기프트 카드 표시 정보와 정렬 방식을 설정합니다.</p></div></div>
+        <div class="toggle-grid">
+          <label class="toggle"><input id="showGiftName" type="checkbox"><span>기프트 이름 표시</span></label>
+          <label class="toggle"><input id="showGiftImage" type="checkbox"><span>기프트 이미지 표시</span></label>
+          <label class="toggle"><input id="showProfileImage" type="checkbox"><span>프로필 사진 표시</span></label>
+          <label class="toggle"><input id="showDiamondValue" type="checkbox"><span>다이아/코인 표시</span></label>
+        </div>
+        <div class="grid four">
+          <label class="field">선물 정렬 기준<select id="sortMode"><option value="latest">최신순</option><option value="amount">금액순</option></select></label>
+          <label class="field">최소 표시 금액<input id="minCoins" type="number" min="0" step="1"></label>
+          <label class="field">최대 일반 카드 수<input id="maxCards" type="number" min="1" max="30" step="1"></label>
+          <label class="field">기프트 폰트 크기<input id="giftFontSize" type="number" min="14" max="72" step="1"></label>
+          <label class="field">기프트 박스 높이<input id="giftCardHeight" type="number" min="56" max="220" step="1"></label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="icon">💎</span><div><h2>금액별 컬러</h2><p>기프트 총 코인 기준으로 카드 컬러를 바꿉니다.</p></div></div>
+        <div id="giftTierGrid" class="tier-grid"></div>
+      </section>
+    </section>
+
+    <section class="tab-page" data-page="level">
+      <section class="panel">
+        <div class="panel-head"><span class="icon">⭐</span><div><h2>레벨업 카드</h2><p>멤버 레벨 상승 시 표시되는 카드 설정입니다.</p></div></div>
+        <div class="toggle-grid compact">
+          <label class="toggle"><input id="levelEnabled" type="checkbox"><span>레벨업 카드 표시</span></label>
+        </div>
+        <div class="grid four">
+          <label class="field">최대 일반 카드 수<input id="levelMaxCards" type="number" min="1" max="20"></label>
+          <label class="field">레벨 정렬 기준<select id="levelSortMode"><option value="latest">최신순</option><option value="level">레벨순</option></select></label>
+          <label class="field">최소 표시 레벨<input id="levelMinLevel" type="number" min="0" step="1"></label>
+          <label class="field">레벨업 폰트 크기<input id="levelFontSize" type="number" min="14" max="72" step="1"></label>
+          <label class="field">레벨업 박스 높이<input id="levelCardHeight" type="number" min="56" max="220" step="1"></label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="icon">🌟</span><div><h2>레벨별 컬러</h2><p>레벨 구간별로 카드 컬러를 다르게 표시합니다.</p></div></div>
+        <div id="levelTierGrid" class="tier-grid"></div>
+      </section>
+    </section>
+
+
+
+    <section class="tab-page" data-page="teamRanking">
+      <section class="panel">
+        <div class="panel-head"><span class="icon">🏆</span><div><h2>팀 레벨 랭킹</h2><p>퇴장한 유저도 서버에 유지되는 팀 레벨 랭킹 보드 설정입니다.</p></div></div>
+        <div class="grid four">
+          <label class="field">표시 형태
+            <select id="teamRankingLayout">
+              <option value="list">리스트형</option>
+              <option value="card">카드형</option>
+            </select>
+          </label>
+          <label class="field">표시 순위 개수<input id="teamRankingMaxItems" type="number" min="1" max="100" step="1"></label>
+          <label class="field">폰트 크기(px)<input id="teamRankingFontSize" type="number" min="12" max="96" step="1"></label>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><span class="icon">🎨</span><div><h2>팀 랭킹 컬러</h2><p>랭킹 보드의 카드, 텍스트, 순위 강조색을 바꿉니다.</p></div></div>
+        <div class="grid four">
+          <label class="color-field">텍스트<input id="teamRankingColor_text" type="color"></label>
+          <label class="color-field">배경 1<input id="teamRankingColor_background" type="color"></label>
+          <label class="color-field">배경 2<input id="teamRankingColor_background2" type="color"></label>
+          <label class="color-field">테두리<input id="teamRankingColor_border" type="color"></label>
+          <label class="color-field">1위/강조<input id="teamRankingColor_accent" type="color"></label>
+          <label class="color-field">2위<input id="teamRankingColor_second" type="color"></label>
+          <label class="color-field">3위<input id="teamRankingColor_third" type="color"></label>
+        </div>
+      </section>
+
+
+      <section class="panel">
+        <div class="panel-head"><span class="icon">📊</span><div><h2>현재 팀 랭킹</h2><p>수신된 team level 데이터 기준으로 높은 레벨부터 표시됩니다.</p></div></div>
+        <div id="teamRankingPreview" class="pin-list"></div>
+      </section>
+    </section>
+
+
+    <section class="tab-page" data-page="audioReactive">
+      <section class="panel">
+        <div class="panel-head"><span class="icon">🎧</span><div><h2>오디오 스펙트럼</h2><p>투명 배경 오버레이로 올리는 오디오 반응형 효과를 제어합니다. 저장하면 서버/Supabase에 저장되고 오버레이가 자동 반영됩니다.</p></div></div>
+        <div class="grid four">
+          <label class="field">효과 타입
+            <select id="audioType">
+              <option value="bars">막대형</option>
+              <option value="bubbles">버블형</option>
+              <option value="particles">파티클</option>
+              <option value="sparkles">반짝이</option>
+              <option value="hearts">하트</option>
+              <option value="stars">별</option>
+              <option value="notes">음표</option>
+            </select>
+          </label>
+          <label class="color-field">베이스 컬러<input id="audioColor" type="color"></label>
+          <label class="field">감도<input id="audioSensitivity" type="range" min="0.2" max="4" step="0.05"></label>
+          <label class="field">부드러움<input id="audioSmoothing" type="range" min="0" max="0.95" step="0.01"></label>
+          <label class="field">개수/밀도<input id="audioCount" type="range" min="12" max="160" step="1"></label>
+          <label class="field">크기<input id="audioSize" type="range" min="0.4" max="3" step="0.05"></label>
+          <label class="field">속도<input id="audioSpeed" type="range" min="0.2" max="3" step="0.05"></label>
+          <label class="field">투명도<input id="audioOpacity" type="range" min="0.1" max="1" step="0.01"></label>
+          <label class="field">위치
+            <select id="audioPosition">
+              <option value="bottom">하단</option>
+              <option value="center">중앙</option>
+              <option value="top">상단</option>
+              <option value="full">전체</option>
+            </select>
+          </label>
+          <label class="toggle"><input id="audioMirror" type="checkbox"><span>좌우 대칭</span></label>
+          <label class="toggle"><input id="audioGlow" type="checkbox"><span>글로우 효과</span></label>
+        </div>
+        <p id="audioValuePreview" class="preset-help"></p>
+      </section>
+    </section>
+
+    <section class="tab-page" data-page="colors">
+      <section class="panel">
+        <div class="panel-head"><span class="icon">🌈</span><div><h2>컬러 프리셋</h2><p>전체 분위기를 빠르게 바꿀 수 있는 프리셋입니다.</p></div></div>
+        <input id="activePreset" type="hidden">
+        <div id="presetPalette" class="preset-palette" aria-label="컬러 프리셋 목록"></div>
+        <p class="preset-help">원형 프리셋을 클릭하면 기프트/레벨업/금액별/레벨별 컬러가 함께 적용됩니다. 저장 버튼을 눌러야 오버레이에 반영됩니다.</p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="icon">🎨</span><div><h2>기본 카드 컬러</h2><p>금액/레벨 구간에 걸리지 않을 때 사용할 기본 컬러입니다.</p></div></div>
+        <h3>기프트 기본 컬러</h3>
+        <div id="giftBaseColorGrid" class="single-color-grid"></div>
+        <h3>레벨업 기본 컬러</h3>
+        <div id="levelBaseColorGrid" class="single-color-grid"></div>
+      </section>
+    </section>
+
+    <section class="tab-page" data-page="pins">
+      <section class="panel">
+        <div class="panel-head"><span class="icon">📌</span><div><h2>현재 활성 카드 고정</h2><p>체크한 이벤트별 카드는 사라지지 않고 상단에 유지됩니다. 여러 개 고정할 수 있습니다.</p></div></div>
+        <div class="pin-columns">
+          <div><h3>기프트</h3><div id="giftPinList" class="pin-list"></div></div>
+          <div><h3>레벨업</h3><div id="levelPinList" class="pin-list"></div></div>
+        </div>
+      </section>
+    </section>
+
+    <section class="tab-page" data-page="urls">
+      <section class="panel">
+        <div class="panel-head"><span class="icon">🔗</span><div><h2>오버레이 URL</h2><p>OBS 브라우저 소스에 각각 넣어 사용할 수 있습니다.</p></div></div>
+        <div id="urlList" class="url-list"></div>
+      </section>
+
+    </section>
+
+    <section class="actions">
+      <button id="saveBtn" class="primary">설정 저장</button>
+      <button id="reloadStateBtn" type="button">목록 새로고침</button>
+    </section>
+    <pre id="status"></pre>
+  </main>
+  <script src="/overlay/control.js"></script>
+</body>
+</html>

@@ -12,18 +12,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const audioFrames = new Map();
-function clientHasAudioReactive(client) {
-  return Boolean(client?.entitlements?.["audio-reactive"]);
-}
-function normalizeAudioLevels(value) {
-  const arr = Array.isArray(value) ? value : [];
-  return arr.slice(0, 192).map((v) => {
-    const n = Number(v);
-    if (!Number.isFinite(n)) return 0;
-    return Math.max(0, Math.min(255, Math.round(n)));
-  });
-}
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
@@ -96,28 +84,6 @@ app.get("/api/state/:clientId", requireRegisteredClient, (req, res) => {
   res.json(getPublicState(req.clientId));
 });
 
-app.post("/api/audio/:clientId", requireRegisteredClient, (req, res) => {
-  if (!clientHasAudioReactive(req.clientMeta)) {
-    return res.status(403).json({ ok: false, error: "audio-reactive 권한이 없습니다." });
-  }
-  const body = req.body || {};
-  const levels = normalizeAudioLevels(body.levels || body.data);
-  if (!levels.length) return res.status(400).json({ ok: false, error: "levels 배열이 필요합니다." });
-  const volume = Math.max(0, Math.min(255, Math.round(Number(body.volume ?? 0) || 0)));
-  const frame = { ok: true, clientId: req.clientId, levels, volume, ts: Date.now() };
-  audioFrames.set(req.clientId, frame);
-  res.json({ ok: true, received: levels.length, ts: frame.ts });
-});
-
-app.get("/api/audio/:clientId", requireRegisteredClient, (req, res) => {
-  if (!clientHasAudioReactive(req.clientMeta)) {
-    return res.status(403).json({ ok: false, error: "audio-reactive 권한이 없습니다." });
-  }
-  const frame = audioFrames.get(req.clientId);
-  if (!frame) return res.json({ ok: true, clientId: req.clientId, levels: [], volume: 0, ts: 0 });
-  res.json(frame);
-});
-
 app.get("/api/settings/:clientId", requireRegisteredClient, (req, res) => {
   const { clientId, client } = getClient(req.clientId);
   res.json({ clientId, settings: client.settings, presets: COLOR_PRESETS });
@@ -173,6 +139,55 @@ app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
     giftAdded: Boolean(giftAdded),
     levelAdded: Boolean(levelAdded),
     teamRankingUpdated: Boolean(teamRankingUpdated)
+  });
+});
+
+
+// 오디오 리액티브: Receiver 앱이 전송한 주파수 데이터를 메모리에 저장/조회합니다.
+// Render 무료 환경에서도 바로 동작하도록 DB 저장이 아닌 최신 프레임 캐시 방식입니다.
+const audioState = new Map();
+
+function requireAudioReactiveAccess(req, res, next) {
+  const entitlements = req.clientMeta?.entitlements || {};
+  if (entitlements["audio-reactive"] !== true) {
+    return res.status(403).json({ ok: false, error: "audio-reactive 권한이 없습니다." });
+  }
+  next();
+}
+
+app.post("/api/audio/:clientId", requireRegisteredClient, requireAudioReactiveAccess, (req, res) => {
+  const { levels, volume, ts } = req.body || {};
+  if (!Array.isArray(levels)) {
+    return res.status(400).json({ ok: false, error: "levels 배열 필요" });
+  }
+
+  const normalizedLevels = levels
+    .slice(0, 160)
+    .map((value) => Math.max(0, Math.min(255, Math.round(Number(value) || 0))));
+
+  audioState.set(req.clientId, {
+    levels: normalizedLevels,
+    volume: Math.max(0, Math.min(255, Math.round(Number(volume) || 0))),
+    ts: Number(ts) || Date.now(),
+    receivedAt: Date.now()
+  });
+
+  res.json({ ok: true });
+});
+
+app.get("/api/audio/:clientId", requireRegisteredClient, requireAudioReactiveAccess, (req, res) => {
+  const data = audioState.get(req.clientId);
+  if (!data) {
+    return res.json({ ok: true, levels: [], volume: 0, ts: Date.now(), stale: true });
+  }
+
+  const stale = Date.now() - Number(data.receivedAt || 0) > 2200;
+  res.json({
+    ok: true,
+    levels: stale ? [] : data.levels,
+    volume: stale ? 0 : data.volume,
+    ts: data.ts,
+    stale
   });
 });
 

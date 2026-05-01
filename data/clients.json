@@ -1,0 +1,67 @@
+{
+  "az_luly_0331": {
+    "name": "아즈사가와 루리",
+    "status": "active",
+    "memo": "아즈사가와 루리",
+    "createdAt": "2026-04-27",
+    "entitlements": {
+      "gift": true,
+      "level": true,
+      "all": true,
+      "team-ranking": true,
+      "audio-reactive": true
+    }
+  },
+  "kimiruda": {
+    "name": "김이루다",
+    "status": "active",
+    "memo": "김이루다",
+    "createdAt": "2026-04-28",
+    "entitlements": {
+      "gift": true,
+      "level": true,
+      "all": true,
+      "team-ranking": true,
+      "audio-reactive": false
+    }
+  },
+  "roro": {
+    "name": "로로",
+    "status": "active",
+    "memo": "로로",
+    "createdAt": "2026-04-28",
+    "entitlements": {
+      "gift": true,
+      "level": true,
+      "all": true,
+      "team-ranking": true,
+      "audio-reactive": false
+    }
+  },
+  "hoddoxxx_07": {
+    "name": "호또",
+    "status": "active",
+    "memo": "호또",
+    "createdAt": "2026-04-29",
+    "entitlements": {
+      "gift": true,
+      "level": true,
+      "all": true,
+      "team-ranking": false,
+      "audio-reactive": false
+    }
+  },
+  "huhu06575_": {
+    "name": "후후",
+    "status": "active",
+    "memo": "후후",
+    "createdAt": "2026-05-01",
+    "entitlements": {
+      "gift": true,
+      "level": true,
+      "all": true,
+      "team-ranking": true,
+      "audio-reactive": false
+    }
+  }
+}
