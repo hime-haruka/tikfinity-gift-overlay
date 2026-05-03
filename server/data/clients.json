@@ -63,5 +63,18 @@
       "team-ranking": true,
       "audio-reactive": false
     }
+  },
+    "hogun_503": {
+    "name": "호군",
+    "status": "active",
+    "memo": "호군",
+    "createdAt": "2026-05-01",
+    "entitlements": {
+      "gift": true,
+      "level": true,
+      "all": true,
+      "team-ranking": false,
+      "audio-reactive": false
+    }
   }
 }
