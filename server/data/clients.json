@@ -76,5 +76,18 @@
       "team-ranking": false,
       "audio-reactive": false
     }
+  },
+    "heleunel_504": {
+    "name": "헤르넬",
+    "status": "active",
+    "memo": "헤르넬",
+    "createdAt": "2026-05-04",
+    "entitlements": {
+      "gift": true,
+      "level": true,
+      "all": true,
+      "team-ranking": false,
+      "audio-reactive": false
+    }
   }
 }
