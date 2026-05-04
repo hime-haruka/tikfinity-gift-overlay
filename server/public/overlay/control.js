@@ -5,6 +5,39 @@ const status = $("status");
 let currentSettings = null;
 let presets = {};
 let latestState = null;
+let clientEntitlements = {};
+
+const TAB_REQUIREMENTS = {
+  gift: ["gift", "all"],
+  level: ["level", "all"],
+  teamRanking: ["team-ranking"],
+  audioReactive: ["audio-reactive"],
+  colors: ["gift", "level", "all"],
+  pins: ["gift", "level", "all"],
+  urls: []
+};
+
+function hasEntitlement(keys) {
+  if (!keys || !keys.length) return true;
+  return keys.some((key) => clientEntitlements[key] === true);
+}
+
+function isTabAllowed(tab) {
+  return hasEntitlement(TAB_REQUIREMENTS[tab] || []);
+}
+
+function applyTabPermissions() {
+  document.querySelectorAll(".tab").forEach((btn) => {
+    btn.hidden = !isTabAllowed(btn.dataset.tab);
+  });
+  document.querySelectorAll(".tab-page").forEach((page) => {
+    page.hidden = !isTabAllowed(page.dataset.page);
+  });
+
+  const current = document.querySelector(".tab.active:not([hidden])")?.dataset.tab;
+  const firstAllowed = document.querySelector(".tab:not([hidden])")?.dataset.tab || "urls";
+  switchTab(current || firstAllowed);
+}
 
 const COLOR_KEYS = [
   ["text", "텍스트"],
@@ -15,11 +48,6 @@ const COLOR_KEYS = [
 ];
 
 $("clientLabel").textContent = `Client ID: ${clientId}`;
-$("giftOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/gift`;
-$("levelOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/level`;
-$("teamRankingOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/team-ranking`;
-$("audioReactiveOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/audio-reactive`;
-$("allOverlayLink").href = `/overlay/${encodeURIComponent(clientId)}/all`;
 
 function setStatus(msg) { status.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`; }
 function getChecked(id) { return $(id).checked; }
@@ -150,6 +178,13 @@ async function loadSettings() {
   currentSettings = data.settings;
   presets = data.presets || {};
 
+  const clientRes = await fetch(`/api/client/${encodeURIComponent(clientId)}`, { cache: "no-store" });
+  if (clientRes.ok) {
+    const clientData = await clientRes.json();
+    clientEntitlements = clientData.client?.entitlements || {};
+  }
+  applyTabPermissions();
+
   setValue("activePreset", currentSettings.activePreset || "purpleDream");
   renderPresetPalette();
 
@@ -262,6 +297,7 @@ async function loadState() {
 
 function renderPinList(type, items) {
   const el = type === "gift" ? $("giftPinList") : $("levelPinList");
+  if (!el) return;
   if (!items.length) {
     el.innerHTML = `<div class="pin-empty">현재 표시 중인 ${type === "gift" ? "기프트" : "레벨업"} 카드가 없습니다.</div>`;
     return;
@@ -343,7 +379,7 @@ function renderRemote(tab) {
   const panel = $("remotePanel");
   if (!panel) return;
 
-  if (!["gift", "level", "teamRanking"].includes(tab)) {
+  if (!["gift", "level", "teamRanking", "pins"].includes(tab) || !isTabAllowed(tab)) {
     panel.hidden = true;
     document.body.classList.remove("has-remote");
     panel.innerHTML = "";
@@ -387,14 +423,17 @@ function renderRemote(tab) {
 }
 
 function switchTab(tab) {
-  document.querySelectorAll(".tab").forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === tab));
-  document.querySelectorAll(".tab-page").forEach((page) => page.classList.toggle("active", page.dataset.page === tab));
+  if (!isTabAllowed(tab)) {
+    tab = document.querySelector(".tab:not([hidden])")?.dataset.tab || "urls";
+  }
+  document.querySelectorAll(".tab").forEach((btn) => btn.classList.toggle("active", !btn.hidden && btn.dataset.tab === tab));
+  document.querySelectorAll(".tab-page").forEach((page) => page.classList.toggle("active", !page.hidden && page.dataset.page === tab));
   renderRemote(tab);
 }
 
 document.querySelector(".tabs").addEventListener("click", (event) => {
   const btn = event.target.closest(".tab");
-  if (btn) switchTab(btn.dataset.tab);
+  if (btn && !btn.hidden) switchTab(btn.dataset.tab);
 });
 
 document.body.addEventListener("change", async (event) => {
@@ -491,6 +530,5 @@ async function runRemoteAction(action) {
 }
 
 
-renderRemote("gift");
 loadSettings().catch((err) => setStatus(`설정 로드 실패: ${err.message}`));
 setInterval(() => loadState().catch(() => {}), 3000);
