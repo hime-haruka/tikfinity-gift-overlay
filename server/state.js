@@ -419,12 +419,22 @@ export function getPublicState(clientIdRaw) {
 
 export function resetClient(clientIdRaw) {
   const { client } = getClient(clientIdRaw);
-  client.gifts = [];
-  client.levelCards = [];
-  client.feedItems = [];
+
+  const pinnedGiftIds = new Set((client.settings.gift.pinnedIds || []).map(String));
+  const pinnedLevelIds = new Set((client.settings.level.pinnedIds || []).map(String));
+
+  client.feedItems = (client.feedItems || []).filter((item) => {
+    const id = String(item.id);
+    if (isGift(item)) return pinnedGiftIds.has(id);
+    if (isLevel(item)) return pinnedLevelIds.has(id);
+    return false;
+  });
+
+  client.settings.gift.pinnedIds = sanitizePinnedIds(client.settings.gift.pinnedIds, client.feedItems, "gift");
+  client.settings.level.pinnedIds = sanitizePinnedIds(client.settings.level.pinnedIds, client.feedItems, "level");
+  client.gifts = displayItems(client, "gift");
+  client.levelCards = displayItems(client, "level");
   client.recentEvents = [];
-  client.settings.gift.pinnedIds = [];
-  client.settings.level.pinnedIds = [];
   scheduleSave();
   return getPublicState(clientIdRaw);
 }

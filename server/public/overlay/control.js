@@ -525,7 +525,7 @@ async function runRemoteAction(action) {
   if (action === "reset") {
     await fetch(`/api/reset/${encodeURIComponent(clientId)}`, { method: "POST" });
     await loadState();
-    setStatus("화면 상태를 초기화했습니다. 팀랭킹 기록과 설정은 유지됩니다.");
+    setStatus("화면 상태를 초기화했습니다. 고정된 핀, 팀랭킹 기록과 설정은 유지됩니다.");
   }
 }
 
