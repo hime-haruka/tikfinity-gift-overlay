@@ -199,10 +199,23 @@ function updateFeed(container, items, settings) {
   });
 }
 
+const POLL_INTERVAL_ACTIVE = 3000;
+const POLL_INTERVAL_HIDDEN = 15000;
+let pollTimer = null;
+
+function schedulePoll(delay) {
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = setTimeout(poll, delay);
+}
+
 async function poll() {
   try {
     const res = await fetch(`/api/state/${encodeURIComponent(clientId)}?t=${Date.now()}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) throw new Error("API returned non-JSON response");
+
     const state = await res.json();
     applySizing(state.settings);
     updateFeed(feedStack, selectItems(state), state.settings);
@@ -210,8 +223,12 @@ async function poll() {
   } catch (err) {
     console.warn("overlay polling failed", err);
   } finally {
-    setTimeout(poll, 800);
+    schedulePoll(document.hidden ? POLL_INTERVAL_HIDDEN : POLL_INTERVAL_ACTIVE);
   }
 }
+
+document.addEventListener("visibilitychange", () => {
+  schedulePoll(document.hidden ? POLL_INTERVAL_HIDDEN : 250);
+});
 
 poll();

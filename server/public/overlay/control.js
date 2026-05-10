@@ -531,4 +531,4 @@ async function runRemoteAction(action) {
 
 
 loadSettings().catch((err) => setStatus(`설정 로드 실패: ${err.message}`));
-setInterval(() => loadState().catch(() => {}), 3000);
+setInterval(() => { if (!document.hidden) loadState().catch(() => {}); }, 10000);

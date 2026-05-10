@@ -315,6 +315,8 @@ async function loadState() {
   try {
     const res = await fetch(`/api/state/${encodeURIComponent(clientId)}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) throw new Error("API returned non-JSON response");
     const state = await res.json();
     render(state);
   } finally {
@@ -323,5 +325,5 @@ async function loadState() {
 }
 
 loadState().catch(renderEmpty);
-setInterval(() => loadState().catch(() => {}), 1500);
+setInterval(() => { if (!document.hidden) loadState().catch(() => {}); }, 5000);
 window.addEventListener("resize", () => requestAnimationFrame(() => refreshMarquees(rankingList)));

@@ -45,7 +45,7 @@ function requireOverlayAccess(req, res, next) {
 }
 
 app.get("/", (req, res) => {
-  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>TikFinity Overlay Server</title></head><body style="font-family:sans-serif;padding:32px"><h1>TikFinity Overlay Server</h1><p>Gift: <code>/overlay/CLIENT_ID/gift</code></p><p>Level: <code>/overlay/CLIENT_ID/level</code></p><p>Team Ranking: <code>/overlay/CLIENT_ID/team-ranking</code></p><p>Audio Reactive: <code>/overlay/CLIENT_ID/audio-reactive</code></p><p>Settings: <code>/settings/CLIENT_ID</code></p><p>Health: <a href="/health">/health</a></p></body></html>`);
+  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>TikFinity Overlay Server</title></head><body style="font-family:sans-serif;padding:32px"><h1>TikFinity Overlay Server</h1><p>Gift: <code>/overlay/CLIENT_ID/gift</code></p><p>Level: <code>/overlay/CLIENT_ID/level</code></p><p>Team Ranking: <code>/overlay/CLIENT_ID/team-ranking</code></p><p>Settings: <code>/settings/CLIENT_ID</code></p><p>Health: <a href="/health">/health</a></p></body></html>`);
 });
 
 app.get("/health", (req, res) => res.json({ ok: true, time: Date.now() }));
@@ -53,13 +53,11 @@ app.get("/health", (req, res) => res.json({ ok: true, time: Date.now() }));
 app.get("/api/debug/routes", (req, res) => {
   res.json({
     ok: true,
-    audioApi: true,
-    apiAudioPost: true,
-    apiAudioGet: true,
+    audioApi: false,
+    apiAudioPost: false,
+    apiAudioGet: false,
     routes: [
       "GET /api/debug/routes",
-      "POST /api/audio/:clientId",
-      "GET /api/audio/:clientId",
       "GET /api/client/:clientId/overlays",
       "GET /api/settings/:clientId",
       "POST /api/settings/:clientId",
@@ -174,40 +172,12 @@ function requireAudioReactiveAccess(req, res, next) {
   next();
 }
 
-app.post("/api/audio/:clientId", requireRegisteredClient, requireAudioReactiveAccess, (req, res) => {
-  const { levels, volume, ts } = req.body || {};
-  if (!Array.isArray(levels)) {
-    return res.status(400).json({ ok: false, error: "levels 배열 필요" });
-  }
-
-  const normalizedLevels = levels
-    .slice(0, 160)
-    .map((value) => Math.max(0, Math.min(255, Math.round(Number(value) || 0))));
-
-  audioState.set(req.clientId, {
-    levels: normalizedLevels,
-    volume: Math.max(0, Math.min(255, Math.round(Number(volume) || 0))),
-    ts: Number(ts) || Date.now(),
-    receivedAt: Date.now()
-  });
-
-  res.json({ ok: true });
+app.post("/api/audio/:clientId", (req, res) => {
+  res.status(410).json({ ok: false, error: "audio-reactive disabled" });
 });
 
-app.get("/api/audio/:clientId", requireRegisteredClient, requireAudioReactiveAccess, (req, res) => {
-  const data = audioState.get(req.clientId);
-  if (!data) {
-    return res.json({ ok: true, levels: [], volume: 0, ts: Date.now(), stale: true });
-  }
-
-  const stale = Date.now() - Number(data.receivedAt || 0) > 2200;
-  res.json({
-    ok: true,
-    levels: stale ? [] : data.levels,
-    volume: stale ? 0 : data.volume,
-    ts: data.ts,
-    stale
-  });
+app.get("/api/audio/:clientId", (req, res) => {
+  res.status(410).json({ ok: false, error: "audio-reactive disabled" });
 });
 
 app.post("/api/test/:clientId/gift", requireRegisteredClient, (req, res) => {
