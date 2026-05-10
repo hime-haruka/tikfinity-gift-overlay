@@ -395,26 +395,93 @@ export function setPinned(clientIdRaw, type, id, pinned) {
   return getPublicState(clientIdRaw);
 }
 
-export function getPublicState(clientIdRaw) {
+function compactGift(item) {
+  return {
+    id: item.id,
+    feedType: "gift",
+    type: item.type || "gift",
+    nickname: item.nickname || item.username || "익명",
+    username: item.username || item.uniqueId || "",
+    profileImage: item.profileImage || "",
+    giftName: item.giftName || "Gift",
+    giftImage: item.giftImage || "",
+    coins: Number(item.coins || 0),
+    count: Number(item.count || 1),
+    totalCoins: Number(item.totalCoins || 0),
+    createdAt: item.createdAt || 0,
+    pinned: Boolean(item.pinned)
+  };
+}
+
+function compactLevel(item) {
+  return {
+    id: item.id,
+    feedType: "level",
+    type: item.type || "member_level_up",
+    nickname: item.nickname || "익명",
+    profileImage: item.profileImage || "",
+    previousLevel: Number(item.previousLevel || 0),
+    level: Number(item.level || 0),
+    createdAt: item.createdAt || 0,
+    pinned: Boolean(item.pinned)
+  };
+}
+
+function compactFeedItem(item) {
+  return isGift(item) ? compactGift(item) : compactLevel(item);
+}
+
+function compactTeamRankingItem(item) {
+  return {
+    rank: Number(item.rank || 0),
+    userId: item.userId || "",
+    uniqueId: item.uniqueId || "",
+    nickname: item.nickname || "익명",
+    profileImage: item.profileImage || "",
+    teamLevel: Number(item.teamLevel || 0),
+    lastUpdate: item.lastUpdate || 0
+  };
+}
+
+export function getPublicState(clientIdRaw, options = {}) {
   const { clientId, client } = getClient(clientIdRaw);
+  const mode = String(options.mode || "all").toLowerCase();
   trimFeed(client);
-  const gifts = displayItems(client, "gift");
-  const levelCards = displayItems(client, "level");
+  const gifts = displayItems(client, "gift").map(compactGift);
+  const levelCards = displayItems(client, "level").map(compactLevel);
   const feedItems = [...gifts, ...levelCards].sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
     if (a.feedType !== b.feedType) return a.feedType === "gift" ? -1 : 1;
     return (b.createdAt || 0) - (a.createdAt || 0);
-  });
-  return {
+  }).map(compactFeedItem);
+  const teamRanking = getTeamRankingList(client).map(compactTeamRankingItem);
+
+  const state = {
     clientId,
     settings: client.settings,
-    feedItems,
-    gifts,
-    levelCards,
-    allItems: client.feedItems,
-    teamRanking: getTeamRankingList(client),
     serverTime: now()
   };
+
+  if (mode === "gift") {
+    state.gifts = gifts;
+    state.feedItems = gifts;
+  } else if (mode === "level") {
+    state.levelCards = levelCards;
+    state.feedItems = levelCards;
+  } else if (mode === "team-ranking") {
+    state.teamRanking = teamRanking;
+  } else {
+    state.feedItems = feedItems;
+    state.gifts = gifts;
+    state.levelCards = levelCards;
+    state.teamRanking = teamRanking;
+  }
+
+  if (options.full === true) {
+    state.allItems = client.feedItems.map(compactFeedItem);
+  }
+
+  return state;
 }
 
 export function resetClient(clientIdRaw) {

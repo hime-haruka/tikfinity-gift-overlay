@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import http from "http";
+import { WebSocketServer } from "ws";
 import { fileURLToPath } from "url";
 import { addGift, addLevelCard, getClient, getPublicState, hydrateStateFromSupabase, markSeen, pushRecentEvent, recordTeamRanking, resetClient, resetTeamRanking, setPinned, updateSettings } from "./state.js";
 import { extractEventName, getMemberLevelFromAnyEvent, normalizeGift, normalizeMemberLevelChange } from "./event-normalizer.js";
@@ -12,10 +14,49 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
+
+
+const wsClients = new Map();
+const WS_PING_INTERVAL_MS = 30000;
+
+function normalizeWsMode(mode) {
+  const value = String(mode || "all").toLowerCase();
+  return value === "team-ranking" ? "team-ranking" : value;
+}
+
+function wsKey(clientId, mode = "all") {
+  return `${clientId}:${normalizeWsMode(mode)}`;
+}
+
+function addWsClient(clientId, mode, ws) {
+  const key = wsKey(clientId, mode);
+  if (!wsClients.has(key)) wsClients.set(key, new Set());
+  wsClients.get(key).add(ws);
+  ws.on("close", () => wsClients.get(key)?.delete(ws));
+}
+
+function sendWs(ws, payload) {
+  if (ws.readyState !== ws.OPEN) return;
+  try { ws.send(JSON.stringify(payload)); } catch {}
+}
+
+function sendState(ws, clientId, mode = "all") {
+  sendWs(ws, { type: "state", mode: normalizeWsMode(mode), state: getPublicState(clientId, { mode }) });
+}
+
+function broadcastState(clientId, reason = "update") {
+  for (const [key, sockets] of wsClients.entries()) {
+    const [keyClientId, mode] = key.split(":");
+    if (keyClientId !== clientId) continue;
+    const payload = { type: "state", reason, mode, state: getPublicState(clientId, { mode }) };
+    for (const ws of [...sockets]) sendWs(ws, payload);
+  }
+}
 
 function requireRegisteredClient(req, res, next) {
   const result = getRegisteredClient(req.params.clientId);
@@ -98,7 +139,7 @@ app.get("/settings/:clientId", requireRegisteredClient, (req, res) => {
 });
 
 app.get("/api/state/:clientId", requireRegisteredClient, (req, res) => {
-  res.json(getPublicState(req.clientId));
+  res.json(getPublicState(req.clientId, { mode: req.query.mode, full: req.query.full === "1" }));
 });
 
 app.get("/api/settings/:clientId", requireRegisteredClient, (req, res) => {
@@ -108,6 +149,7 @@ app.get("/api/settings/:clientId", requireRegisteredClient, (req, res) => {
 
 app.post("/api/settings/:clientId", requireRegisteredClient, (req, res) => {
   const settings = updateSettings(req.clientId, req.body || {});
+  broadcastState(req.clientId, "settings");
   res.json({ ok: true, settings });
 });
 
@@ -116,15 +158,21 @@ app.post("/api/pins/:clientId", requireRegisteredClient, (req, res) => {
   if (!["gift", "level"].includes(type) || !id) {
     return res.status(400).json({ ok: false, error: "type(gift|level)과 id가 필요합니다." });
   }
-  res.json({ ok: true, state: setPinned(req.clientId, type, id, Boolean(pinned)) });
+  const state = setPinned(req.clientId, type, id, Boolean(pinned));
+  broadcastState(req.clientId, "pin");
+  res.json({ ok: true, state });
 });
 
 app.post("/api/reset/:clientId", requireRegisteredClient, (req, res) => {
-  res.json({ ok: true, state: resetClient(req.clientId) });
+  const state = resetClient(req.clientId);
+  broadcastState(req.clientId, "reset");
+  res.json({ ok: true, state });
 });
 
 app.post("/api/reset/:clientId/team-ranking", requireRegisteredClient, (req, res) => {
-  res.json({ ok: true, state: resetTeamRanking(req.clientId) });
+  const state = resetTeamRanking(req.clientId);
+  broadcastState(req.clientId, "reset-team-ranking");
+  res.json({ ok: true, state });
 });
 
 app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
@@ -148,6 +196,8 @@ app.post("/api/events/:clientId", requireRegisteredClient, (req, res) => {
   if (levelCard && !markSeen(client, levelCard.id)) {
     levelAdded = addLevelCard(client, levelCard);
   }
+
+  if (giftAdded || levelAdded || teamRankingUpdated) broadcastState(clientId, "event");
 
   res.json({
     ok: true,
@@ -198,7 +248,9 @@ app.post("/api/test/:clientId/gift", requireRegisteredClient, (req, res) => {
     totalCoins: Number(body.coins || 100) * Number(body.count || 1),
     createdAt: Date.now()
   };
-  res.json({ ok: true, gift: addGift(client, gift) });
+  const added = addGift(client, gift);
+  if (added) broadcastState(req.clientId, "test-gift");
+  res.json({ ok: true, gift: added });
 });
 
 app.post("/api/test/:clientId/team-ranking", requireRegisteredClient, (req, res) => {
@@ -212,6 +264,7 @@ app.post("/api/test/:clientId/team-ranking", requireRegisteredClient, (req, res)
     profileImage: body.profileImage || "",
     level: Number(body.teamLevel || body.level || 25)
   });
+  if (item) broadcastState(req.clientId, "test-team-ranking");
   res.json({ ok: true, teamRanking: item });
 });
 
@@ -229,11 +282,48 @@ app.post("/api/test/:clientId/level", requireRegisteredClient, (req, res) => {
     level: Number(body.level || 10),
     createdAt: Date.now()
   };
-  res.json({ ok: true, level: addLevelCard(client, card) });
+  const added = addLevelCard(client, card);
+  if (added) broadcastState(req.clientId, "test-level");
+  res.json({ ok: true, level: added });
 });
 
 await hydrateStateFromSupabase();
 
-app.listen(PORT, () => {
+const wss = new WebSocketServer({ server, path: "/ws" });
+
+wss.on("connection", (ws, req) => {
+  try {
+    const url = new URL(req.url || "/", "http://localhost");
+    const clientId = String(url.searchParams.get("clientId") || "default");
+    const mode = normalizeWsMode(url.searchParams.get("mode") || "all");
+    const access = getRegisteredClient(clientId);
+    if (!access.ok) {
+      sendWs(ws, { type: "error", error: access.reason });
+      ws.close(1008, access.reason);
+      return;
+    }
+    addWsClient(access.clientId, mode, ws);
+    ws.isAlive = true;
+    ws.on("pong", () => { ws.isAlive = true; });
+    sendState(ws, access.clientId, mode);
+  } catch (err) {
+    sendWs(ws, { type: "error", error: err.message || "websocket error" });
+    ws.close(1011, "websocket error");
+  }
+});
+
+setInterval(() => {
+  for (const ws of wss.clients) {
+    if (ws.isAlive === false) {
+      ws.terminate();
+      continue;
+    }
+    ws.isAlive = false;
+    try { ws.ping(); } catch { ws.terminate(); }
+  }
+}, WS_PING_INTERVAL_MS).unref?.();
+
+server.listen(PORT, () => {
   console.log(`[server] running on port ${PORT}`);
+  console.log(`[server] websocket enabled at /ws?clientId=CLIENT_ID&mode=all`);
 });

@@ -309,21 +309,106 @@ function render(state) {
   requestAnimationFrame(() => refreshMarquees(rankingList));
 }
 
+const POLL_INTERVAL_ACTIVE = 30000;
+const POLL_INTERVAL_HIDDEN = 60000;
+const WS_CONNECT_TIMEOUT = 6000;
+const WS_RECONNECT_MIN = 2000;
+const WS_RECONNECT_MAX = 30000;
+let pollTimer = null;
+let ws = null;
+let wsConnectTimer = null;
+let wsReconnectTimer = null;
+let wsReconnectDelay = WS_RECONNECT_MIN;
+let usingWebSocket = false;
+
 async function loadState() {
-  if (isLoading) return;
+  if (isLoading || usingWebSocket) return;
   isLoading = true;
   try {
-    const res = await fetch(`/api/state/${encodeURIComponent(clientId)}`, { cache: "no-store" });
+    const res = await fetch(`/api/state/${encodeURIComponent(clientId)}?mode=team-ranking&t=${Date.now()}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const contentType = res.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) throw new Error("API returned non-JSON response");
-    const state = await res.json();
-    render(state);
+    render(await res.json());
   } finally {
     isLoading = false;
   }
 }
 
-loadState().catch(renderEmpty);
-setInterval(() => { if (!document.hidden) loadState().catch(() => {}); }, 5000);
+function schedulePoll(delay) {
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = setTimeout(() => loadState().catch(renderEmpty).finally(() => {
+    if (!usingWebSocket) schedulePoll(document.hidden ? POLL_INTERVAL_HIDDEN : POLL_INTERVAL_ACTIVE);
+  }), delay);
+}
+
+function stopPolling() {
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = null;
+}
+
+function websocketUrl() {
+  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  const params = new URLSearchParams({ clientId, mode: "team-ranking" });
+  return `${protocol}//${location.host}/ws?${params.toString()}`;
+}
+
+function startPollingFallback(delay = 500) {
+  usingWebSocket = false;
+  stopPolling();
+  schedulePoll(delay);
+}
+
+function connectWebSocket() {
+  clearTimeout(wsReconnectTimer);
+  clearTimeout(wsConnectTimer);
+  try { ws?.close(); } catch {}
+  ws = null;
+
+  try {
+    ws = new WebSocket(websocketUrl());
+  } catch (err) {
+    console.warn("team-ranking websocket unavailable", err);
+    startPollingFallback(500);
+    return;
+  }
+
+  wsConnectTimer = setTimeout(() => {
+    if (!usingWebSocket) {
+      try { ws?.close(); } catch {}
+      startPollingFallback(500);
+    }
+  }, WS_CONNECT_TIMEOUT);
+
+  ws.addEventListener("open", () => {
+    usingWebSocket = true;
+    wsReconnectDelay = WS_RECONNECT_MIN;
+    clearTimeout(wsConnectTimer);
+    stopPolling();
+  });
+
+  ws.addEventListener("message", (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      if (payload.type === "state" && payload.state) render(payload.state);
+    } catch (err) {
+      console.warn("team-ranking websocket message ignored", err);
+    }
+  });
+
+  ws.addEventListener("close", () => {
+    clearTimeout(wsConnectTimer);
+    usingWebSocket = false;
+    startPollingFallback(500);
+    wsReconnectTimer = setTimeout(connectWebSocket, wsReconnectDelay);
+    wsReconnectDelay = Math.min(WS_RECONNECT_MAX, Math.round(wsReconnectDelay * 1.7));
+  });
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!usingWebSocket) schedulePoll(document.hidden ? POLL_INTERVAL_HIDDEN : 500);
+});
+
+connectWebSocket();
+startPollingFallback(1200);
 window.addEventListener("resize", () => requestAnimationFrame(() => refreshMarquees(rankingList)));

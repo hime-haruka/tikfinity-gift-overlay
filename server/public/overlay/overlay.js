@@ -199,36 +199,134 @@ function updateFeed(container, items, settings) {
   });
 }
 
-const POLL_INTERVAL_ACTIVE = 3000;
-const POLL_INTERVAL_HIDDEN = 15000;
+const POLL_INTERVAL_ACTIVE = 30000;
+const POLL_INTERVAL_HIDDEN = 60000;
+const WS_CONNECT_TIMEOUT = 6000;
+const WS_RECONNECT_MIN = 2000;
+const WS_RECONNECT_MAX = 30000;
 let pollTimer = null;
+let ws = null;
+let wsConnectTimer = null;
+let wsReconnectTimer = null;
+let wsReconnectDelay = WS_RECONNECT_MIN;
+let usingWebSocket = false;
+let lastStateSignature = "";
+
+function getStateSignature(state) {
+  const items = selectItems(state).map((item) => `${item.id}:${item.pinned ? 1 : 0}:${item.count || ""}:${item.totalCoins || ""}:${item.level || ""}`).join("|");
+  const settingsKey = JSON.stringify({
+    gift: state.settings?.gift,
+    level: state.settings?.level,
+    activePreset: state.settings?.activePreset
+  });
+  return `${items}::${settingsKey}`;
+}
+
+function applyState(state) {
+  if (!state?.settings) return;
+  const signature = getStateSignature(state);
+  if (signature === lastStateSignature) return;
+  lastStateSignature = signature;
+  applySizing(state.settings);
+  updateFeed(feedStack, selectItems(state), state.settings);
+  requestAnimationFrame(() => refreshMarquees(document));
+}
 
 function schedulePoll(delay) {
   if (pollTimer) clearTimeout(pollTimer);
   pollTimer = setTimeout(poll, delay);
 }
 
+function stopPolling() {
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = null;
+}
+
 async function poll() {
+  if (usingWebSocket) return;
   try {
-    const res = await fetch(`/api/state/${encodeURIComponent(clientId)}?t=${Date.now()}`, { cache: "no-store" });
+    const url = `/api/state/${encodeURIComponent(clientId)}?mode=${encodeURIComponent(overlayMode)}&t=${Date.now()}`;
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const contentType = res.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) throw new Error("API returned non-JSON response");
 
-    const state = await res.json();
-    applySizing(state.settings);
-    updateFeed(feedStack, selectItems(state), state.settings);
-    requestAnimationFrame(() => refreshMarquees(document));
+    applyState(await res.json());
   } catch (err) {
     console.warn("overlay polling failed", err);
   } finally {
-    schedulePoll(document.hidden ? POLL_INTERVAL_HIDDEN : POLL_INTERVAL_ACTIVE);
+    if (!usingWebSocket) schedulePoll(document.hidden ? POLL_INTERVAL_HIDDEN : POLL_INTERVAL_ACTIVE);
   }
 }
 
+function websocketUrl() {
+  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  const params = new URLSearchParams({ clientId, mode: overlayMode });
+  return `${protocol}//${location.host}/ws?${params.toString()}`;
+}
+
+function startPollingFallback(delay = 500) {
+  usingWebSocket = false;
+  stopPolling();
+  schedulePoll(delay);
+}
+
+function connectWebSocket() {
+  clearTimeout(wsReconnectTimer);
+  clearTimeout(wsConnectTimer);
+
+  try { ws?.close(); } catch {}
+  ws = null;
+
+  try {
+    ws = new WebSocket(websocketUrl());
+  } catch (err) {
+    console.warn("overlay websocket unavailable", err);
+    startPollingFallback(500);
+    return;
+  }
+
+  wsConnectTimer = setTimeout(() => {
+    if (!usingWebSocket) {
+      try { ws?.close(); } catch {}
+      startPollingFallback(500);
+    }
+  }, WS_CONNECT_TIMEOUT);
+
+  ws.addEventListener("open", () => {
+    usingWebSocket = true;
+    wsReconnectDelay = WS_RECONNECT_MIN;
+    clearTimeout(wsConnectTimer);
+    stopPolling();
+  });
+
+  ws.addEventListener("message", (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      if (payload.type === "state" && payload.state) applyState(payload.state);
+    } catch (err) {
+      console.warn("overlay websocket message ignored", err);
+    }
+  });
+
+  ws.addEventListener("close", () => {
+    clearTimeout(wsConnectTimer);
+    usingWebSocket = false;
+    startPollingFallback(500);
+    wsReconnectTimer = setTimeout(connectWebSocket, wsReconnectDelay);
+    wsReconnectDelay = Math.min(WS_RECONNECT_MAX, Math.round(wsReconnectDelay * 1.7));
+  });
+
+  ws.addEventListener("error", () => {
+    // close 이벤트에서 polling fallback과 재연결을 처리합니다.
+  });
+}
+
 document.addEventListener("visibilitychange", () => {
-  schedulePoll(document.hidden ? POLL_INTERVAL_HIDDEN : 250);
+  if (usingWebSocket) return;
+  schedulePoll(document.hidden ? POLL_INTERVAL_HIDDEN : 500);
 });
 
-poll();
+connectWebSocket();
+startPollingFallback(1200);
