@@ -94,7 +94,7 @@
     "name": "몽담",
     "status": "active",
     "memo": "몽담",
-    "createdAt": "2026-05-04",
+    "createdAt": "2026-05-10",
     "entitlements": {
       "gift": true,
       "level": true,
@@ -102,5 +102,5 @@
       "team-ranking": true,
       "audio-reactive": false
     }
-  },
+  }
 }
