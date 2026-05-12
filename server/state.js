@@ -23,10 +23,58 @@ function normalizeGiftTierRanges(settings) {
 import fs from "fs";
 import path from "path";
 import { DEFAULT_SETTINGS } from "./settings-defaults.js";
-import { fetchAllClientStates, isSupabaseEnabled, upsertAllClientStates } from "./supabase.js";
+import { fetchAllClientStates, isSupabaseEnabled, upsertClientState } from "./supabase.js";
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "state.json");
+
+const REMOTE_SAVE_DELAY_MS = Number(process.env.REMOTE_SAVE_DELAY_MS || 30000);
+const LOCAL_SAVE_DELAY_MS = Number(process.env.LOCAL_SAVE_DELAY_MS || 5000);
+const MAX_FEED_ITEMS_IN_MEMORY = Number(process.env.MAX_FEED_ITEMS_IN_MEMORY || 60);
+const MAX_RECENT_EVENTS = Number(process.env.MAX_RECENT_EVENTS || 20);
+
+function compactPersistentTeamRanking(teamRanking = {}) {
+  const entries = Object.entries(teamRanking || {})
+    .filter(([, item]) => Number(item?.teamLevel || 0) > 0)
+    .map(([key, item]) => [key, {
+      userId: item.userId || key,
+      uniqueId: item.uniqueId || "",
+      nickname: item.nickname || "익명",
+      profileImage: item.profileImage || "",
+      teamLevel: Number(item.teamLevel || 0),
+      lastUpdate: Number(item.lastUpdate || 0),
+      createdAt: Number(item.createdAt || item.lastUpdate || Date.now())
+    }]);
+  return Object.fromEntries(entries);
+}
+
+function getPinnedFeedItemsForPersistence(client) {
+  const giftPins = new Set((client.settings?.gift?.pinnedIds || []).map(String));
+  const levelPins = new Set((client.settings?.level?.pinnedIds || []).map(String));
+  return (client.feedItems || [])
+    .filter((item) => (isGift(item) && giftPins.has(String(item.id))) || (isLevel(item) && levelPins.has(String(item.id))))
+    .map(compactFeedItem)
+    .filter(Boolean);
+}
+
+function currentKstDayKey() {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function cleanupDailyVolatileItems(client) {
+  const today = currentKstDayKey();
+  if (!client._volatileDay) {
+    client._volatileDay = today;
+    return;
+  }
+  if (client._volatileDay === today) return;
+  client.feedItems = getPinnedFeedItemsForPersistence(client);
+  client.gifts = [];
+  client.levelCards = [];
+  client.recentEvents = [];
+  client.seenEventIds = {};
+  client._volatileDay = today;
+}
 
 function deepMerge(base, patch) {
   if (!patch || typeof patch !== "object") return structuredClone(base);
@@ -61,16 +109,21 @@ function loadState() {
 }
 
 let saveTimer = null;
+let remoteSaveTimer = null;
 let remoteSaveInFlight = false;
 let remoteSaveQueued = false;
+const dirtyClientIds = new Set();
 
 function createClientSnapshot(client) {
+  normalizeClientShape(client);
   return {
     settings: client.settings,
     state: {
+      // DB 장기 저장은 고정 핀 + 팀 랭킹 중심으로 제한합니다.
+      // 일반 기프트/레벨 카드는 메모리에서만 유지되어 재배포/다음날 운영 시 자연스럽게 비워집니다.
       memberLevels: client.memberLevels || {},
-      teamRanking: client.teamRanking || {},
-      feedItems: client.feedItems || []
+      teamRanking: compactPersistentTeamRanking(client.teamRanking || {}),
+      feedItems: getPinnedFeedItemsForPersistence(client)
     }
   };
 }
@@ -98,37 +151,53 @@ function writeLocalStateFile(snapshots) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(compact, null, 2));
 }
 
-async function saveRemoteState(snapshots) {
+async function saveRemoteDirtyClients() {
   if (!isSupabaseEnabled()) return;
   if (remoteSaveInFlight) {
     remoteSaveQueued = true;
     return;
   }
+  const ids = [...dirtyClientIds];
+  dirtyClientIds.clear();
+  if (!ids.length) return;
+
   remoteSaveInFlight = true;
   try {
-    await upsertAllClientStates(snapshots);
+    for (const clientId of ids) {
+      const client = state.clients[clientId];
+      if (!client) continue;
+      await upsertClientState(clientId, createClientSnapshot(client));
+    }
   } catch (err) {
     console.error('[state] failed to save Supabase state', err);
+    for (const clientId of ids) dirtyClientIds.add(clientId);
   } finally {
     remoteSaveInFlight = false;
-    if (remoteSaveQueued) {
+    if (remoteSaveQueued || dirtyClientIds.size) {
       remoteSaveQueued = false;
-      setTimeout(() => saveRemoteState(createAllSnapshots()), 300);
+      clearTimeout(remoteSaveTimer);
+      remoteSaveTimer = setTimeout(saveRemoteDirtyClients, REMOTE_SAVE_DELAY_MS);
     }
   }
 }
 
-function scheduleSave() {
+function scheduleSave(clientIdRaw = null) {
+  const clientId = clientIdRaw ? safeClientId(clientIdRaw) : null;
+  if (clientId) dirtyClientIds.add(clientId);
+  else for (const id of Object.keys(state.clients)) dirtyClientIds.add(id);
+
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try {
       const snapshots = createAllSnapshots();
       writeLocalStateFile(snapshots);
-      saveRemoteState(snapshots);
     } catch (err) {
-      console.error('[state] failed to save state', err);
+      console.error('[state] failed to save local state', err);
     }
-  }, 500);
+  }, LOCAL_SAVE_DELAY_MS);
+
+  clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = setTimeout(saveRemoteDirtyClients, REMOTE_SAVE_DELAY_MS);
 }
 
 loadState();
@@ -140,10 +209,11 @@ function applyPersistedClient(client, persisted) {
   }
   const persistedState = persisted.state && typeof persisted.state === 'object' ? persisted.state : persisted;
   client.memberLevels = persistedState.memberLevels || client.memberLevels || {};
-  client.teamRanking = persistedState.teamRanking || client.teamRanking || {};
-  client.feedItems = Array.isArray(persistedState.feedItems) ? persistedState.feedItems : (client.feedItems || []);
-  client.gifts = Array.isArray(persistedState.gifts) ? persistedState.gifts : (client.gifts || []);
-  client.levelCards = Array.isArray(persistedState.levelCards) ? persistedState.levelCards : (client.levelCards || []);
+  client.teamRanking = compactPersistentTeamRanking(persistedState.teamRanking || client.teamRanking || {});
+  // DB에는 고정 핀만 저장하므로 복원 feedItems도 고정 카드 위주입니다.
+  client.feedItems = Array.isArray(persistedState.feedItems) ? persistedState.feedItems : [];
+  client.gifts = [];
+  client.levelCards = [];
 }
 
 export async function hydrateStateFromSupabase() {
@@ -202,6 +272,7 @@ function normalizeClientShape(client) {
       ...client.levelCards.map((item) => ({ ...item, feedType: "level" }))
     ].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }
+  cleanupDailyVolatileItems(client);
 }
 
 export function getClient(clientIdRaw) {
@@ -217,9 +288,10 @@ export function getClient(clientIdRaw) {
       recentEvents: [],
       seenEventIds: {}
     };
-    scheduleSave();
+    scheduleSave(clientId);
   }
   const client = state.clients[clientId];
+  client._clientId = clientId;
   normalizeClientShape(client);
   return { clientId, client };
 }
@@ -230,7 +302,7 @@ export function updateSettings(clientIdRaw, patch) {
   normalizeGiftTierRanges(client.settings);
   client.settings.gift.pinnedIds = sanitizePinnedIds(client.settings.gift.pinnedIds, client.feedItems, "gift");
   client.settings.level.pinnedIds = sanitizePinnedIds(client.settings.level.pinnedIds, client.feedItems, "level");
-  scheduleSave();
+  scheduleSave(clientIdRaw);
   return client.settings;
 }
 
@@ -256,7 +328,7 @@ export function markSeen(client, eventId) {
 
 export function pushRecentEvent(client, item) {
   client.recentEvents.unshift({ ...item, at: now() });
-  client.recentEvents = client.recentEvents.slice(0, 60);
+  client.recentEvents = client.recentEvents.slice(0, MAX_RECENT_EVENTS);
 }
 
 function isGift(item) { return item.feedType === "gift" || item.type === "gift"; }
@@ -304,7 +376,7 @@ function trimFeed(client) {
 
   const recent = [...client.feedItems]
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-    .slice(0, 120);
+    .slice(0, MAX_FEED_ITEMS_IN_MEMORY);
 
   const pinned = client.feedItems.filter((item) => keepIds.has(String(item.id)));
   const merged = [...pinned, ...recent];
@@ -332,7 +404,7 @@ export function addGift(client, gift) {
 
   client.feedItems.unshift(item);
   trimFeed(client);
-  scheduleSave();
+  scheduleSave(client._clientId);
   return item;
 }
 
@@ -347,7 +419,7 @@ export function addLevelCard(client, card) {
 
   client.feedItems.unshift(item);
   trimFeed(client);
-  scheduleSave();
+  scheduleSave(client._clientId);
   return item;
 }
 
@@ -360,6 +432,10 @@ export function recordTeamRanking(client, info) {
   const nextLevel = Number(info.level || info.teamLevel || 0);
   if (!Number.isFinite(nextLevel) || nextLevel <= 0) return null;
 
+  const previousLevel = Number(prev.teamLevel || 0);
+  if (previousLevel === nextLevel && (info.nickname || "") === (prev.nickname || "") && (info.profileImage || "") === (prev.profileImage || "")) {
+    return null;
+  }
   client.teamRanking[key] = {
     userId: key,
     uniqueId: info.uniqueId || prev.uniqueId || "",
@@ -369,7 +445,7 @@ export function recordTeamRanking(client, info) {
     lastUpdate: now(),
     createdAt: prev.createdAt || now()
   };
-  scheduleSave();
+  scheduleSave(client._clientId);
   return client.teamRanking[key];
 }
 
@@ -391,7 +467,7 @@ export function setPinned(clientIdRaw, type, id, pinned) {
   else ids.delete(String(id));
   client.settings[key].pinnedIds = [...ids];
   trimFeed(client);
-  scheduleSave();
+  scheduleSave(clientIdRaw);
   return getPublicState(clientIdRaw);
 }
 
@@ -502,13 +578,13 @@ export function resetClient(clientIdRaw) {
   client.gifts = displayItems(client, "gift");
   client.levelCards = displayItems(client, "level");
   client.recentEvents = [];
-  scheduleSave();
+  scheduleSave(clientIdRaw);
   return getPublicState(clientIdRaw);
 }
 
 export function resetTeamRanking(clientIdRaw) {
   const { client } = getClient(clientIdRaw);
   client.teamRanking = {};
-  scheduleSave();
+  scheduleSave(clientIdRaw);
   return getPublicState(clientIdRaw);
 }
