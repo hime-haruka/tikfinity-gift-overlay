@@ -102,5 +102,18 @@
       "team-ranking": true,
       "audio-reactive": false
     }
-  }
+  },
+    "on_tanpopo_513": {
+    "name": "ON",
+    "status": "active",
+    "memo": "ON",
+    "createdAt": "2026-05-13",
+    "entitlements": {
+      "gift": true,
+      "level": true,
+      "all": true,
+      "team-ranking": true,
+      "audio-reactive": false
+    }
+  },
 }
