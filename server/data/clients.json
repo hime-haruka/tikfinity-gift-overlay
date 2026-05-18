@@ -115,5 +115,18 @@
       "team-ranking": true,
       "audio-reactive": false
     }
+  },
+    "tion__26519": {
+    "name": "티온",
+    "status": "active",
+    "memo": "티온",
+    "createdAt": "2026-05-19",
+    "entitlements": {
+      "gift": true,
+      "level": true,
+      "all": true,
+      "team-ranking": true,
+      "audio-reactive": false
+    }
   }
 }
