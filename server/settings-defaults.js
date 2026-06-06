@@ -238,6 +238,12 @@ export const DEFAULT_SETTINGS = {
     maxCards: 8,
     fontSize: 24,
     cardHeight: 50,
+    fanOverlay: {
+      enabled: true,
+      theme: "fan",
+      coinsPerUnit: 100,
+      maxUnits: 30
+    },
     pinnedIds: [],
     colors: defaultPreset.gift,
     tiers: defaultPreset.giftTiers

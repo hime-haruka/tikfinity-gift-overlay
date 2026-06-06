@@ -197,6 +197,11 @@ async function loadSettings() {
   setValue("maxCards", currentSettings.gift.maxCards);
   setValue("giftFontSize", currentSettings.gift.fontSize || 24);
   setValue("giftCardHeight", currentSettings.gift.cardHeight || 50);
+  const fanOverlay = currentSettings.gift.fanOverlay || {};
+  setChecked("fanOverlayEnabled", fanOverlay.enabled !== false);
+  setValue("fanOverlayTheme", fanOverlay.theme || "fan");
+  setValue("fanOverlayCoinsPerUnit", fanOverlay.coinsPerUnit || 100);
+  setValue("fanOverlayMaxUnits", fanOverlay.maxUnits || 30);
 
   setChecked("levelEnabled", currentSettings.level.enabled);
   setValue("levelMaxCards", currentSettings.level.maxCards);
@@ -232,6 +237,12 @@ function collectSettings() {
       maxCards: getNum("maxCards"),
       fontSize: getNum("giftFontSize"),
       cardHeight: getNum("giftCardHeight"),
+      fanOverlay: {
+        enabled: getChecked("fanOverlayEnabled"),
+        theme: getValue("fanOverlayTheme") || "fan",
+        coinsPerUnit: Math.max(1, getNum("fanOverlayCoinsPerUnit") || 100),
+        maxUnits: Math.max(1, getNum("fanOverlayMaxUnits") || 30)
+      },
       pinnedIds: currentSettings.gift.pinnedIds || [],
       colors: getColor("giftBase"),
       tiers: giftTiers

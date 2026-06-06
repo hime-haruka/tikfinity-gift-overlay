@@ -3,6 +3,7 @@ const overlayIndex = parts.indexOf("overlay");
 const clientId = decodeURIComponent(parts[overlayIndex + 1] || "default");
 const overlayMode = String(parts[overlayIndex + 2] || "all").toLowerCase();
 const feedStack = document.getElementById("feedStack");
+const supportStage = document.getElementById("supportStage");
 
 function cssVar(name, value) { document.documentElement.style.setProperty(name, value); }
 
@@ -156,6 +157,49 @@ function signatureForItem(item, settings) {
   });
 }
 
+
+const SUPPORT_THEMES = ["fan", "lightstick", "placard", "led"];
+function clamp(n, min, max) { return Math.max(min, Math.min(max, Number(n || 0))); }
+function supportThemeFor(index, selected) {
+  if (selected === "random") return SUPPORT_THEMES[index % SUPPORT_THEMES.length];
+  return SUPPORT_THEMES.includes(selected) ? selected : "fan";
+}
+function supportLabel(theme) {
+  return ({ fan: "FAN", lightstick: "ON", placard: "CHEER", led: "THANK YOU" })[theme] || "FAN";
+}
+function supportUnitHtml(item, theme, index) {
+  const profile = imageHtml(item.profileImage, "support-avatar", "★");
+  const nickname = escapeHtml(item.nickname || item.username || "익명");
+  const label = supportLabel(theme);
+  return `<div class="support-unit support-${theme}" style="--i:${index % 12}; --delay:${(index % 12) * -0.11}s" title="${escapeAttr(nickname)}">
+    <div class="support-face">${profile}</div>
+    <div class="support-prop"><span>${theme === "placard" || theme === "led" ? nickname : label}</span></div>
+  </div>`;
+}
+function buildSupportUnits(items, settings) {
+  const fan = settings?.gift?.fanOverlay || {};
+  if (fan.enabled === false) return [];
+  const coinsPerUnit = Math.max(1, Number(fan.coinsPerUnit || 100));
+  const maxUnits = clamp(fan.maxUnits || 30, 1, 80);
+  const selectedTheme = fan.theme || "fan";
+  const units = [];
+  const gifts = items.filter(isGift).sort((a, b) => Number(b.totalCoins || 0) - Number(a.totalCoins || 0) || (b.createdAt || 0) - (a.createdAt || 0));
+  for (const item of gifts) {
+    const count = Math.floor(Number(item.totalCoins || 0) / coinsPerUnit);
+    for (let i = 0; i < count && units.length < maxUnits; i += 1) {
+      units.push({ item, theme: supportThemeFor(units.length + i, selectedTheme) });
+    }
+    if (units.length >= maxUnits) break;
+  }
+  return units;
+}
+function updateSupportStage(items, settings) {
+  if (!supportStage) return;
+  const units = buildSupportUnits(items, settings);
+  supportStage.hidden = units.length === 0;
+  supportStage.innerHTML = units.map(({ item, theme }, index) => supportUnitHtml(item, theme, index)).join("");
+}
+
 function updateFeed(container, items, settings) {
   const incomingIds = new Set(items.map((item) => String(item.id)));
 
@@ -216,6 +260,7 @@ function getStateSignature(state) {
   const items = selectItems(state).map((item) => `${item.id}:${item.pinned ? 1 : 0}:${item.count || ""}:${item.totalCoins || ""}:${item.level || ""}`).join("|");
   const settingsKey = JSON.stringify({
     gift: state.settings?.gift,
+    fanOverlay: state.settings?.gift?.fanOverlay,
     level: state.settings?.level,
     activePreset: state.settings?.activePreset
   });
@@ -227,8 +272,10 @@ function applyState(state) {
   const signature = getStateSignature(state);
   if (signature === lastStateSignature) return;
   lastStateSignature = signature;
+  const items = selectItems(state);
   applySizing(state.settings);
-  updateFeed(feedStack, selectItems(state), state.settings);
+  updateFeed(feedStack, items, state.settings);
+  updateSupportStage(items, state.settings);
   requestAnimationFrame(() => refreshMarquees(document));
 }
 

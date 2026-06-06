@@ -44,6 +44,21 @@
           <label class="field">기프트 폰트 크기<input id="giftFontSize" type="number" min="14" max="72" step="1"></label>
           <label class="field">기프트 박스 높이<input id="giftCardHeight" type="number" min="56" max="220" step="1"></label>
         </div>
+        <div class="panel-subhead"><h3>응원단 효과</h3><p>고액 기프트 코인 금액에 따라 시청자 프로필이 들어간 응원 아이템을 표시합니다.</p></div>
+        <div class="grid four">
+          <label class="toggle field-toggle"><input id="fanOverlayEnabled" type="checkbox"><span>응원단 표시</span></label>
+          <label class="field">응원 아이템
+            <select id="fanOverlayTheme">
+              <option value="fan">부채</option>
+              <option value="lightstick">응원봉</option>
+              <option value="placard">플래카드</option>
+              <option value="led">LED 전광판</option>
+              <option value="random">랜덤</option>
+            </select>
+          </label>
+          <label class="field">아이템 1개당 코인<input id="fanOverlayCoinsPerUnit" type="number" min="1" max="100000" step="1"></label>
+          <label class="field">최대 표시 개수<input id="fanOverlayMaxUnits" type="number" min="1" max="80" step="1"></label>
+        </div>
       </section>
 
       <section class="panel">
