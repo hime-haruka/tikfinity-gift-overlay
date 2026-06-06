@@ -36,9 +36,6 @@ function normalizeClient(client) {
   const entitlements = client?.entitlements && typeof client.entitlements === "object"
     ? client.entitlements
     : { gift: true, level: true, all: true, "team-ranking": true };
-  if (entitlements.support === undefined && (entitlements.gift === true || entitlements.all === true)) {
-    entitlements.support = true;
-  }
   return { ...client, entitlements };
 }
 

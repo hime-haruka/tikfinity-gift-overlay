@@ -160,45 +160,98 @@ function signatureForItem(item, settings) {
 
 
 const SUPPORT_THEMES = ["fan", "lightstick", "placard", "led"];
+const SUPPORT_LIFETIME_MS = 4300;
+let supportBooted = false;
+let supportSeenGiftIds = new Set();
+let supportNodeSeq = 0;
+
 function clamp(n, min, max) { return Math.max(min, Math.min(max, Number(n || 0))); }
-function supportThemeFor(index, selected) {
-  if (selected === "random") return SUPPORT_THEMES[index % SUPPORT_THEMES.length];
+function pickSupportTheme(selected) {
+  if (selected === "random") return SUPPORT_THEMES[Math.floor(Math.random() * SUPPORT_THEMES.length)];
   return SUPPORT_THEMES.includes(selected) ? selected : "fan";
 }
 function supportLabel(theme) {
-  return ({ fan: "FAN", lightstick: "ON", placard: "CHEER", led: "THANK YOU" })[theme] || "FAN";
+  return ({ fan: "응원", lightstick: "ON", placard: "CHEER", led: "THANK YOU" })[theme] || "응원";
+}
+function supportStyleVars(index) {
+  const x = Math.round(4 + Math.random() * 88);
+  const y = Math.round(Math.random() * 22);
+  const scale = (0.86 + Math.random() * 0.28).toFixed(2);
+  const tilt = Math.round(-10 + Math.random() * 20);
+  const delay = (Math.random() * 0.34).toFixed(2);
+  const z = 10 + index;
+  return `--x:${x}%; --rise:${y}px; --scale:${scale}; --tilt:${tilt}deg; --delay:${delay}s; --z:${z};`;
 }
 function supportUnitHtml(item, theme, index) {
-  const profile = imageHtml(item.profileImage, "support-avatar", "★");
+  const profile = imageHtml(item.profileImage, "support-print-img", "★");
   const nickname = escapeHtml(item.nickname || item.username || "익명");
-  const label = supportLabel(theme);
-  return `<div class="support-unit support-${theme}" style="--i:${index % 12}; --delay:${(index % 12) * -0.11}s" title="${escapeAttr(nickname)}">
-    <div class="support-face">${profile}</div>
-    <div class="support-prop"><span>${theme === "placard" || theme === "led" ? nickname : label}</span></div>
+  const label = theme === "placard" || theme === "led" ? nickname : supportLabel(theme);
+  return `<div class="support-unit support-${theme}" style="${supportStyleVars(index)}" title="${escapeAttr(nickname)}">
+    <div class="support-prop">
+      <div class="support-print">${profile}</div>
+      <span>${label}</span>
+    </div>
   </div>`;
 }
-function buildSupportUnits(items, settings) {
+function buildSupportUnitsFromGift(item, settings) {
   const fan = settings?.gift?.fanOverlay || {};
-  if (fan.enabled === false) return [];
+  if (fan.enabled === false || !isGift(item)) return [];
   const coinsPerUnit = Math.max(1, Number(fan.coinsPerUnit || 100));
   const maxUnits = clamp(fan.maxUnits || 30, 1, 80);
+  const count = clamp(Math.floor(Number(item.totalCoins || item.coins || 0) / coinsPerUnit), 0, maxUnits);
   const selectedTheme = fan.theme || "fan";
-  const units = [];
-  const gifts = items.filter(isGift).sort((a, b) => Number(b.totalCoins || 0) - Number(a.totalCoins || 0) || (b.createdAt || 0) - (a.createdAt || 0));
-  for (const item of gifts) {
-    const count = Math.floor(Number(item.totalCoins || 0) / coinsPerUnit);
-    for (let i = 0; i < count && units.length < maxUnits; i += 1) {
-      units.push({ item, theme: supportThemeFor(units.length + i, selectedTheme) });
-    }
-    if (units.length >= maxUnits) break;
-  }
-  return units;
+  return Array.from({ length: count }, () => ({ item, theme: pickSupportTheme(selectedTheme) }));
+}
+function removeSupportNode(node) {
+  if (!node || !node.parentNode) return;
+  node.classList.add("support-leave");
+  setTimeout(() => node.remove(), 520);
+}
+function spawnSupportBurst(gift, settings) {
+  if (!supportStage) return;
+  const units = buildSupportUnitsFromGift(gift, settings);
+  if (!units.length) return;
+  supportStage.hidden = false;
+  const fragment = document.createDocumentFragment();
+  units.forEach(({ item, theme }) => {
+    const wrap = document.createElement("div");
+    supportNodeSeq += 1;
+    wrap.innerHTML = supportUnitHtml(item, theme, supportNodeSeq).trim();
+    const node = wrap.firstElementChild;
+    fragment.appendChild(node);
+    setTimeout(() => removeSupportNode(node), SUPPORT_LIFETIME_MS + Math.random() * 550);
+  });
+  supportStage.appendChild(fragment);
 }
 function updateSupportStage(items, settings) {
   if (!supportStage) return;
-  const units = buildSupportUnits(items, settings);
-  supportStage.hidden = units.length === 0;
-  supportStage.innerHTML = units.map(({ item, theme }, index) => supportUnitHtml(item, theme, index)).join("");
+  const gifts = (items || []).filter(isGift);
+  const currentIds = new Set(gifts.map((item) => String(item.id)));
+  if (!gifts.length) {
+    supportSeenGiftIds.clear();
+    supportStage.innerHTML = "";
+    supportStage.hidden = true;
+    supportBooted = true;
+    return;
+  }
+
+  if (!supportBooted) {
+    supportSeenGiftIds = currentIds;
+    supportBooted = true;
+    return;
+  }
+
+  gifts
+    .slice()
+    .sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0))
+    .forEach((gift) => {
+      const id = String(gift.id);
+      if (supportSeenGiftIds.has(id)) return;
+      supportSeenGiftIds.add(id);
+      spawnSupportBurst(gift, settings);
+    });
+
+  if (!supportStage.children.length) supportStage.hidden = true;
 }
 
 function updateFeed(container, items, settings) {
