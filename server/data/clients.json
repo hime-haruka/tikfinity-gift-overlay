@@ -10,7 +10,7 @@
       "all": true,
       "team-ranking": true,
       "audio-reactive": false,
-      "support": false
+      "support": true
     }
   },
   "kimiruda": {

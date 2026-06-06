@@ -11,7 +11,7 @@ const TAB_REQUIREMENTS = {
   gift: ["gift", "all"],
   level: ["level", "all"],
   teamRanking: ["team-ranking"],
-  support: ["support", "gift", "all"],
+  support: ["support"],
   audioReactive: ["audio-reactive"],
   colors: ["gift", "level", "all"],
   pins: ["gift", "level", "all"],
@@ -391,7 +391,7 @@ function renderRemote(tab) {
   const panel = $("remotePanel");
   if (!panel) return;
 
-  if (!["gift", "level", "teamRanking", "pins"].includes(tab) || !isTabAllowed(tab)) {
+  if (!["gift", "level", "teamRanking", "support", "pins"].includes(tab) || !isTabAllowed(tab)) {
     panel.hidden = true;
     document.body.classList.remove("has-remote");
     panel.innerHTML = "";
@@ -409,6 +409,23 @@ function renderRemote(tab) {
       <label>팀 레벨<input id="teamLevel" type="number" min="0" step="1" value="25"></label>
       <button type="button" data-remote-action="teamRanking">팀 랭킹 추가</button>
       <button type="button" class="ghost danger" data-remote-action="resetTeamRanking">팀랭킹 초기화</button>
+      <button type="button" class="ghost" data-remote-action="reset">화면 초기화</button>
+    `;
+    return;
+  }
+
+  if (tab === "support") {
+    const coinsPerUnit = Math.max(1, Number(currentSettings?.gift?.fanOverlay?.coinsPerUnit || 100));
+    const sampleCoins = coinsPerUnit * 10;
+    panel.innerHTML = `
+      <div class="remote-head"><span>📣</span><strong>응원단 테스트</strong></div>
+      <p>응원단 오버레이에 실제 기프트 이벤트와 같은 형식의 테스트 데이터를 보냅니다.</p>
+      <label>닉네임<input id="giftNickname" type="text" value="응원단_테스트유저"></label>
+      <div class="remote-row">
+        <label>금액<input id="giftCoins" type="number" min="0" step="1" value="${sampleCoins}"></label>
+        <label>수량<input id="giftCount" type="number" min="1" step="1" value="1"></label>
+      </div>
+      <button type="button" data-remote-action="gift">테스트 기프트</button>
       <button type="button" class="ghost" data-remote-action="reset">화면 초기화</button>
     `;
     return;
@@ -479,7 +496,7 @@ function scheduleLiveSave() {
   clearTimeout(liveSaveTimer);
   liveSaveTimer = setTimeout(() => saveSettings().catch((err) => setStatus(`자동 저장 실패: ${err.message}`)), 450);
 }
-["audioType", "audioColor", "audioSensitivity", "audioNoiseGate", "audioSmoothing", "audioCount", "audioSize", "audioSpeed", "audioOpacity", "audioPosition", "audioMirror", "audioGlow", "teamRankingLayout", "teamRankingMaxItems", "teamRankingFontSize", ...TEAM_COLOR_KEYS.map((key) => `teamRankingColor_${key}`)]
+["audioType", "audioColor", "audioSensitivity", "audioNoiseGate", "audioSmoothing", "audioCount", "audioSize", "audioSpeed", "audioOpacity", "audioPosition", "audioMirror", "audioGlow", "teamRankingLayout", "teamRankingMaxItems", "teamRankingFontSize", "fanOverlayEnabled", "fanOverlayTheme", "fanOverlayCoinsPerUnit", "fanOverlayMaxUnits", ...TEAM_COLOR_KEYS.map((key) => `teamRankingColor_${key}`)]
   .forEach((id) => {
     const el = $(id);
     if (!el) return;
