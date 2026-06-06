@@ -133,6 +133,7 @@ function refreshMarquees(root = document) {
 function selectItems(state) {
   if (overlayMode === "gift") return state.gifts || [];
   if (overlayMode === "level") return state.levelCards || [];
+  if (overlayMode === "support") return state.gifts || state.feedItems || [];
   return state.feedItems || [...(state.gifts || []), ...(state.levelCards || [])];
 }
 
@@ -274,7 +275,11 @@ function applyState(state) {
   lastStateSignature = signature;
   const items = selectItems(state);
   applySizing(state.settings);
-  updateFeed(feedStack, items, state.settings);
+  if (overlayMode === "support") {
+    feedStack.innerHTML = "";
+  } else {
+    updateFeed(feedStack, items, state.settings);
+  }
   updateSupportStage(items, state.settings);
   requestAnimationFrame(() => refreshMarquees(document));
 }

@@ -9,7 +9,8 @@ export const OVERLAY_CATALOG = {
   level: { id: "level", name: "레벨업 보드", description: "멤버 레벨업 전용 오버레이" },
   all: { id: "all", name: "통합 보드", description: "기프트와 레벨업을 한 화면에 표시" },
   "team-ranking": { id: "team-ranking", name: "팀 레벨 랭킹", description: "퇴장해도 유지되는 팀 레벨 랭킹 보드" },
-  "audio-reactive": { id: "audio-reactive", name: "오디오 스펙트럼", description: "투명 배경 오디오 반응형 스펙트럼" }
+  "audio-reactive": { id: "audio-reactive", name: "오디오 스펙트럼", description: "투명 배경 오디오 반응형 스펙트럼" },
+  support: { id: "support", name: "응원단 오버레이", description: "고액 기프트 시 프로필 부채/응원봉/플래카드/LED 표시" }
 };
 
 function safeClientId(clientId) {
@@ -25,7 +26,7 @@ function ensureClientsFile() {
       status: "active",
       memo: "처음 배포 테스트용 ID입니다. 실제 판매 전 변경/추가해서 사용하세요.",
       createdAt: new Date().toISOString().slice(0, 10),
-      entitlements: { gift: true, level: true, all: true, "team-ranking": true }
+      entitlements: { gift: true, level: true, all: true, "team-ranking": true, support: true }
     }
   };
   fs.writeFileSync(CLIENTS_FILE, JSON.stringify(initial, null, 2));
@@ -35,6 +36,9 @@ function normalizeClient(client) {
   const entitlements = client?.entitlements && typeof client.entitlements === "object"
     ? client.entitlements
     : { gift: true, level: true, all: true, "team-ranking": true };
+  if (entitlements.support === undefined && (entitlements.gift === true || entitlements.all === true)) {
+    entitlements.support = true;
+  }
   return { ...client, entitlements };
 }
 

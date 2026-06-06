@@ -11,6 +11,7 @@ const TAB_REQUIREMENTS = {
   gift: ["gift", "all"],
   level: ["level", "all"],
   teamRanking: ["team-ranking"],
+  support: ["support", "gift", "all"],
   audioReactive: ["audio-reactive"],
   colors: ["gift", "level", "all"],
   pins: ["gift", "level", "all"],

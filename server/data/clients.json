@@ -9,7 +9,8 @@
       "level": true,
       "all": true,
       "team-ranking": true,
-      "audio-reactive": false
+      "audio-reactive": false,
+      "support": true
     }
   },
   "kimiruda": {
@@ -22,7 +23,8 @@
       "level": true,
       "all": true,
       "team-ranking": true,
-      "audio-reactive": false
+      "audio-reactive": false,
+      "support": true
     }
   },
   "roro": {
@@ -35,7 +37,8 @@
       "level": true,
       "all": true,
       "team-ranking": true,
-      "audio-reactive": false
+      "audio-reactive": false,
+      "support": true
     }
   },
   "hoddoxxx_07": {
@@ -48,7 +51,8 @@
       "level": true,
       "all": true,
       "team-ranking": false,
-      "audio-reactive": false
+      "audio-reactive": false,
+      "support": true
     }
   },
   "huhu06575_": {
@@ -61,10 +65,11 @@
       "level": true,
       "all": true,
       "team-ranking": true,
-      "audio-reactive": false
+      "audio-reactive": false,
+      "support": true
     }
   },
-    "hogun_503": {
+  "hogun_503": {
     "name": "호군",
     "status": "active",
     "memo": "호군",
@@ -74,10 +79,11 @@
       "level": true,
       "all": true,
       "team-ranking": false,
-      "audio-reactive": false
+      "audio-reactive": false,
+      "support": true
     }
   },
-    "heleunel_504": {
+  "heleunel_504": {
     "name": "헤르넬",
     "status": "active",
     "memo": "헤르넬",
@@ -87,10 +93,11 @@
       "level": true,
       "all": true,
       "team-ranking": false,
-      "audio-reactive": false
+      "audio-reactive": false,
+      "support": true
     }
   },
-    "mongdam_510": {
+  "mongdam_510": {
     "name": "몽담",
     "status": "active",
     "memo": "몽담",
@@ -100,10 +107,11 @@
       "level": true,
       "all": true,
       "team-ranking": true,
-      "audio-reactive": false
+      "audio-reactive": false,
+      "support": true
     }
   },
-    "on_tanpopo_513": {
+  "on_tanpopo_513": {
     "name": "ON",
     "status": "active",
     "memo": "ON",
@@ -113,10 +121,11 @@
       "level": true,
       "all": true,
       "team-ranking": true,
-      "audio-reactive": false
+      "audio-reactive": false,
+      "support": true
     }
   },
-    "tion__26519": {
+  "tion__26519": {
     "name": "티온",
     "status": "active",
     "memo": "티온",
@@ -126,7 +135,8 @@
       "level": true,
       "all": true,
       "team-ranking": true,
-      "audio-reactive": false
+      "audio-reactive": false,
+      "support": true
     }
   }
 }

@@ -20,6 +20,7 @@
       <button class="tab active" data-tab="gift">기프트</button>
       <button class="tab" data-tab="level">레벨업</button>
       <button class="tab" data-tab="teamRanking">팀 랭킹</button>
+      <button class="tab" data-tab="support">응원단</button>
       <button class="tab" data-tab="audioReactive">오디오 스펙트럼</button>
       <button class="tab" data-tab="colors">컬러/프리셋</button>
       <button class="tab" data-tab="pins">고정 관리</button>
@@ -43,21 +44,6 @@
           <label class="field">최대 일반 카드 수<input id="maxCards" type="number" min="1" max="30" step="1"></label>
           <label class="field">기프트 폰트 크기<input id="giftFontSize" type="number" min="14" max="72" step="1"></label>
           <label class="field">기프트 박스 높이<input id="giftCardHeight" type="number" min="56" max="220" step="1"></label>
-        </div>
-        <div class="panel-subhead"><h3>응원단 효과</h3><p>고액 기프트 코인 금액에 따라 시청자 프로필이 들어간 응원 아이템을 표시합니다.</p></div>
-        <div class="grid four">
-          <label class="toggle field-toggle"><input id="fanOverlayEnabled" type="checkbox"><span>응원단 표시</span></label>
-          <label class="field">응원 아이템
-            <select id="fanOverlayTheme">
-              <option value="fan">부채</option>
-              <option value="lightstick">응원봉</option>
-              <option value="placard">플래카드</option>
-              <option value="led">LED 전광판</option>
-              <option value="random">랜덤</option>
-            </select>
-          </label>
-          <label class="field">아이템 1개당 코인<input id="fanOverlayCoinsPerUnit" type="number" min="1" max="100000" step="1"></label>
-          <label class="field">최대 표시 개수<input id="fanOverlayMaxUnits" type="number" min="1" max="80" step="1"></label>
         </div>
       </section>
 
@@ -88,6 +74,29 @@
       </section>
     </section>
 
+
+
+    <section class="tab-page" data-page="support">
+      <section class="panel">
+        <div class="panel-head"><span class="icon">📣</span><div><h2>응원단 오버레이</h2><p>고액 기프트 코인 금액에 따라 시청자 프로필이 들어간 부채/응원봉/플래카드/LED를 표시합니다.</p></div></div>
+        <div class="panel-subhead"><h3>응원단 효과</h3><p>고액 기프트 코인 금액에 따라 시청자 프로필이 들어간 응원 아이템을 표시합니다.</p></div>
+        <div class="grid four">
+          <label class="toggle field-toggle"><input id="fanOverlayEnabled" type="checkbox"><span>응원단 표시</span></label>
+          <label class="field">응원 아이템
+            <select id="fanOverlayTheme">
+              <option value="fan">부채</option>
+              <option value="lightstick">응원봉</option>
+              <option value="placard">플래카드</option>
+              <option value="led">LED 전광판</option>
+              <option value="random">랜덤</option>
+            </select>
+          </label>
+          <label class="field">아이템 1개당 코인<input id="fanOverlayCoinsPerUnit" type="number" min="1" max="100000" step="1"></label>
+          <label class="field">최대 표시 개수<input id="fanOverlayMaxUnits" type="number" min="1" max="80" step="1"></label>
+        </div>
+        <p class="preset-help">예: 아이템 1개당 코인을 100으로 두면 200코인 기프트는 2개, 1000코인 기프트는 10개가 표시됩니다. 랜덤은 부채/응원봉/플래카드/LED를 섞어서 표시합니다.</p>
+      </section>
+    </section>
 
 
     <section class="tab-page" data-page="teamRanking">

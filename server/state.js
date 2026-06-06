@@ -536,6 +536,9 @@ export function getPublicState(clientIdRaw, options = {}) {
     state.feedItems = levelCards;
   } else if (mode === "team-ranking") {
     state.teamRanking = teamRanking;
+  } else if (mode === "support") {
+    state.gifts = gifts;
+    state.feedItems = gifts;
   } else {
     state.feedItems = feedItems;
     state.gifts = gifts;
